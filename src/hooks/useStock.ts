@@ -92,7 +92,7 @@ export function useStock() {
           const trimmedRef = ref.trim();
 
           const { data, error: dbError } = await stockClient
-            .from('products')
+            .from('stock_products')
             .select('ref_extrabat, name, depot_quantity, paul_truck_quantity, quentin_truck_quantity')
             .eq('ref_extrabat', trimmedRef);
 
