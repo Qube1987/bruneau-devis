@@ -1,0 +1,253 @@
+const corsHeaders = {
+  'Access-Control-Allow-Origin': '*',
+  'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
+  'Access-Control-Allow-Methods': 'POST, OPTIONS',
+}
+
+// Helper function to wrap base64 content into 76-character lines for SMTP compliance
+function wrapBase64(base64String: string): string {
+  const lineLength = 76
+  const lines = []
+  for (let i = 0; i < base64String.length; i += lineLength) {
+    lines.push(base64String.substring(i, i + lineLength))
+  }
+  return lines.join('\r\n')
+}
+
+interface EmailRequest {
+  to: string;
+  subject: string;
+  html: string;
+  pdfData: string; // Base64 encoded PDF
+  fileName: string;
+  devisData: any;
+}
+
+Deno.serve(async (req) => {
+  // Handle CORS preflight requests
+  if (req.method === 'OPTIONS') {
+    return new Response('ok', { headers: corsHeaders })
+  }
+
+  try {
+    console.log('Edge function started')
+    
+    const { to, subject, html, pdfData, fileName, devisData }: EmailRequest = await req.json()
+    
+    console.log('Request parsed:', { to, subject, fileName })
+
+    // Validate required fields
+    if (!to || !subject || !pdfData) {
+      console.error('Missing required fields')
+      return new Response(
+        JSON.stringify({ 
+          success: false, 
+          error: 'Missing required fields: to, subject, pdfData' 
+        }),
+        { 
+          status: 400,
+          headers: { ...corsHeaders, 'Content-Type': 'application/json' } 
+        }
+      )
+    }
+
+    // Get SMTP credentials from environment
+    const smtpHost = Deno.env.get('SMTP_HOST') || 'smtp.exchange-swiss.ch'
+    const smtpPort = parseInt(Deno.env.get('SMTP_PORT') || '587')
+    const smtpUser = Deno.env.get('SMTP_USER') || 'service@bruneau27.com'
+    const smtpPassword = Deno.env.get('SMTP_PASSWORD')
+    const smtpFrom = Deno.env.get('SMTP_FROM') || 'service@bruneau27.com'
+
+    console.log('SMTP config:', { smtpHost, smtpPort, smtpUser, smtpFrom })
+
+    if (!smtpPassword) {
+      console.error('SMTP_PASSWORD not configured')
+      return new Response(
+        JSON.stringify({ 
+          success: false, 
+          error: 'SMTP_PASSWORD not configured' 
+        }),
+        { 
+          status: 500,
+          headers: { ...corsHeaders, 'Content-Type': 'application/json' } 
+        }
+      )
+    }
+
+    // Clean the PDF data (remove data URI prefix if present)
+    const cleanPdfData = cleanBase64(pdfData)
+    
+    console.log('Original PDF data length:', pdfData.length)
+    console.log('Original PDF data starts with:', pdfData.substring(0, 100))
+    console.log('Cleaned PDF data length:', cleanPdfData.length)
+    console.log('Cleaned PDF data starts with:', cleanPdfData.substring(0, 50))
+
+    // Clean base64 data and validate
+    function cleanBase64(base64Data: string): string {
+      // Remove data URI prefix if present
+      let cleaned = base64Data
+      const dataUriMatch = base64Data.match(/^data:[^;]+;base64,(.+)$/)
+      if (dataUriMatch) {
+        cleaned = dataUriMatch[1]
+      } else if (base64Data.startsWith('data:')) {
+        // Handle other data URI formats
+        const commaIndex = base64Data.indexOf(',')
+        if (commaIndex !== -1) {
+          cleaned = base64Data.substring(commaIndex + 1)
+        }
+      }
+      
+      // Remove any whitespace or newlines
+      cleaned = cleaned.replace(/[\s\r\n]/g, '')
+      
+      // Validate base64 format
+      if (!/^[A-Za-z0-9+/]*={0,2}$/.test(cleaned)) {
+        console.error('Invalid base64 format detected')
+        throw new Error('Invalid base64 format')
+      }
+      
+      return cleaned
+    }
+
+    // Connect to SMTP server
+    console.log('Connecting to SMTP server...')
+    const conn = await Deno.connect({
+      hostname: smtpHost,
+      port: smtpPort,
+    })
+
+    const encoder = new TextEncoder()
+    const decoder = new TextDecoder()
+
+    // Helper function to send command and read response
+    async function sendCommand(command: string): Promise<string> {
+      console.log('SMTP CMD:', command.replace(smtpPassword || '', '***'))
+      await conn.write(encoder.encode(command + '\r\n'))
+      
+      const buffer = new Uint8Array(1024)
+      const n = await conn.read(buffer)
+      const response = decoder.decode(buffer.subarray(0, n || 0))
+      console.log('SMTP RSP:', response.trim())
+      return response
+    }
+
+    try {
+      // Read server greeting
+      const buffer = new Uint8Array(1024)
+      const n = await conn.read(buffer)
+      const greeting = decoder.decode(buffer.subarray(0, n || 0))
+      console.log('SMTP Greeting:', greeting.trim())
+
+      // EHLO
+      await sendCommand(`EHLO ${smtpHost}`)
+
+      // STARTTLS
+      await sendCommand('STARTTLS')
+
+      // Upgrade to TLS
+      const tlsConn = await Deno.startTls(conn, { hostname: smtpHost })
+
+      // Helper function for TLS commands
+      async function sendTlsCommand(command: string): Promise<string> {
+        console.log('SMTP TLS CMD:', command.replace(smtpPassword || '', '***'))
+        await tlsConn.write(encoder.encode(command + '\r\n'))
+        
+        const buffer = new Uint8Array(1024)
+        const n = await tlsConn.read(buffer)
+        const response = decoder.decode(buffer.subarray(0, n || 0))
+        console.log('SMTP TLS RSP:', response.trim())
+        return response
+      }
+
+      // EHLO again after TLS
+      await sendTlsCommand(`EHLO ${smtpHost}`)
+
+      // AUTH LOGIN
+      await sendTlsCommand('AUTH LOGIN')
+      await sendTlsCommand(btoa(smtpUser))
+      await sendTlsCommand(btoa(smtpPassword))
+
+      // MAIL FROM
+      await sendTlsCommand(`MAIL FROM:<${smtpFrom}>`)
+
+      // RCPT TO
+      await sendTlsCommand(`RCPT TO:<${to}>`)
+
+      // DATA
+      await sendTlsCommand('DATA')
+
+      // Email headers and content
+      const boundary = `----=_NextPart_${Date.now()}`
+      
+      const emailContent = [
+        `From: Bruneau Protection <${smtpFrom}>`,
+        `To: ${to}`,
+        `Subject: =?UTF-8?B?${btoa(subject)}?=`,
+        `MIME-Version: 1.0`,
+        `Content-Type: multipart/mixed; boundary="${boundary}"`,
+        ``,
+        `--${boundary}`,
+        `Content-Type: text/html; charset=utf-8`,
+        `Content-Transfer-Encoding: base64`,
+        ``,
+        wrapBase64(btoa(unescape(encodeURIComponent(html)))),
+        ``,
+        `--${boundary}`,
+        `Content-Type: application/pdf; name="${fileName}"`,
+        `Content-Transfer-Encoding: base64`,
+        `Content-Disposition: attachment; filename="${fileName}"`,
+        ``,
+        wrapBase64(cleanPdfData),
+        ``,
+        `--${boundary}--`,
+        `.`
+      ].join('\r\n')
+
+      // Send email content
+      await tlsConn.write(encoder.encode(emailContent + '\r\n'))
+      
+      // Read final response
+      const finalBuffer = new Uint8Array(1024)
+      const finalN = await tlsConn.read(finalBuffer)
+      const finalResponse = decoder.decode(finalBuffer.subarray(0, finalN || 0))
+      console.log('SMTP Final:', finalResponse.trim())
+
+      // QUIT
+      await sendTlsCommand('QUIT')
+      
+      tlsConn.close()
+      
+      console.log('Email sent successfully!')
+      
+    } catch (smtpError) {
+      console.error('SMTP Error:', smtpError)
+      conn.close()
+      throw smtpError
+    }
+    
+    return new Response(
+      JSON.stringify({ 
+        success: true, 
+        data: { messageId: `${Date.now()}@bruneau-protection.com` },
+        message: 'Email sent successfully'
+      }),
+      { 
+        headers: { ...corsHeaders, 'Content-Type': 'application/json' } 
+      }
+    )
+
+  } catch (error) {
+    console.error('Edge function error:', error)
+    
+    return new Response(
+      JSON.stringify({ 
+        success: false, 
+        error: error instanceof Error ? error.message : 'Unknown error' 
+      }),
+      { 
+        status: 500,
+        headers: { ...corsHeaders, 'Content-Type': 'application/json' } 
+      }
+    )
+  }
+})
