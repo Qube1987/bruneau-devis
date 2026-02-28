@@ -15,7 +15,7 @@ export const useExtrabat = () => {
         body: {
           endpoint: 'clients',
           params: {
-            nomraisonsociale: query,
+            q: query,
             include: 'telephone,adresse'
           }
         }
