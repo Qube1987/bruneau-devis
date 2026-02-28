@@ -58,7 +58,8 @@ Deno.serve(async (req) => {
 
       // Ensure endpoint starts with a slash but avoid double slashes
       const cleanEndpoint = endpoint.startsWith('/') ? endpoint : `/${endpoint}`
-      let apiUrl = `https://api.extrabat.com/v2${cleanEndpoint}`
+      // Switching to v1 as per main documentation preference
+      let apiUrl = `https://api.extrabat.com/v1${cleanEndpoint}`
 
       if (params) {
         const searchParams = new URLSearchParams()
@@ -73,6 +74,14 @@ Deno.serve(async (req) => {
       }
 
       console.log('Calling Extrabat API:', apiUrl)
+
+      // Add company_id if configured
+      const companyId = Deno.env.get('EXTRABAT_COMPANY_ID')
+      if (companyId && params && !params.company_id) {
+        const url = new URL(apiUrl)
+        url.searchParams.append('company_id', companyId)
+        apiUrl = url.toString()
+      }
 
       const response = await fetch(apiUrl, {
         method: 'GET',
