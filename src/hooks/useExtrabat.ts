@@ -13,10 +13,10 @@ export const useExtrabat = () => {
 
       const { data, error } = await supabase.functions.invoke('extrabat-proxy', {
         body: {
-          endpoint: '/clients',
+          endpoint: 'clients',
           params: {
-            search: query,
-            include: 'telephone,adresse,ouvrage'
+            nomraisonsociale: query,
+            include: 'telephone,adresse'
           }
         }
       });
