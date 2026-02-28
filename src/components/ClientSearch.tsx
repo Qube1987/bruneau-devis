@@ -185,7 +185,7 @@ export const ClientSearch: React.FC<ClientSearchProps> = ({ onClientSelect }) =>
           placeholder="Rechercher un client Extrabat..."
           value={searchQuery}
           onChange={(e) => setSearchQuery(e.target.value)}
-          className="w-full pl-10 pr-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[#29235C] focus:border-[#29235C] transition-colors"
+          className="w-full pl-10 pr-4 py-3 min-h-[44px] border border-gray-300 rounded-lg focus:ring-2 focus:ring-[#29235C] focus:border-[#29235C] transition-colors"
         />
         {loading && (
           <div className="absolute inset-y-0 right-0 pr-3 flex items-center">
@@ -201,7 +201,7 @@ export const ClientSearch: React.FC<ClientSearchProps> = ({ onClientSelect }) =>
             <button
               key={client.id}
               onClick={() => handleClientSelect(client)}
-              className="w-full p-4 text-left hover:bg-gray-50 active:bg-gray-100 border-b border-gray-100 last:border-b-0 transition-colors touch-manipulation"
+              className="w-full p-4 min-h-[44px] text-left hover:bg-gray-50 active:bg-gray-100 border-b border-gray-100 last:border-b-0 transition-colors touch-manipulation"
             >
               <div className="flex items-center justify-between">
                 <div>
@@ -241,7 +241,7 @@ export const ClientSearch: React.FC<ClientSearchProps> = ({ onClientSelect }) =>
             </h3>
             <button
               onClick={() => setShowDetails(!showDetails)}
-              className="p-1 hover:bg-blue-100 rounded"
+              className="p-2 min-w-[44px] min-h-[44px] flex items-center justify-center hover:bg-blue-100 rounded"
             >
               {showDetails ? <ChevronUp className="h-4 w-4" /> : <ChevronDown className="h-4 w-4" />}
             </button>
@@ -264,7 +264,7 @@ export const ClientSearch: React.FC<ClientSearchProps> = ({ onClientSelect }) =>
               <select
                 value={selectedPhone}
                 onChange={(e) => setSelectedPhone(e.target.value)}
-                className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[#29235C] focus:border-[#29235C]"
+                className="w-full px-3 py-2 min-h-[44px] border border-gray-300 rounded-lg focus:ring-2 focus:ring-[#29235C] focus:border-[#29235C]"
               >
                 <option value="">Aucun téléphone</option>
                 {selectedClient.telephones.map((tel, index) => (
@@ -286,7 +286,7 @@ export const ClientSearch: React.FC<ClientSearchProps> = ({ onClientSelect }) =>
               <select
                 value={selectedAddress}
                 onChange={(e) => setSelectedAddress(e.target.value)}
-                className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[#29235C] focus:border-[#29235C]"
+                className="w-full px-3 py-2 min-h-[44px] border border-gray-300 rounded-lg focus:ring-2 focus:ring-[#29235C] focus:border-[#29235C]"
               >
                 <option value="">Aucune adresse</option>
                 {selectedClient.adresses.map((addr, index) => (
@@ -308,7 +308,7 @@ export const ClientSearch: React.FC<ClientSearchProps> = ({ onClientSelect }) =>
               <select
                 value={selectedOuvrage || ''}
                 onChange={(e) => setSelectedOuvrage(e.target.value ? parseInt(e.target.value) : null)}
-                className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[#29235C] focus:border-[#29235C]"
+                className="w-full px-3 py-2 min-h-[44px] border border-gray-300 rounded-lg focus:ring-2 focus:ring-[#29235C] focus:border-[#29235C]"
               >
                 <option value="">Aucun ouvrage</option>
                 {selectedClient.ouvrage.map((ouvrage) => (
@@ -322,16 +322,16 @@ export const ClientSearch: React.FC<ClientSearchProps> = ({ onClientSelect }) =>
           )}
 
           {/* Action Buttons */}
-          <div className="flex items-center justify-end space-x-3 pt-4 border-t border-blue-200">
+          <div className="flex flex-col sm:flex-row items-center justify-end gap-3 pt-4 border-t border-blue-200">
             <button
               onClick={handleCancel}
-              className="px-4 py-2 text-gray-600 hover:text-gray-800 font-medium"
+              className="w-full sm:w-auto px-4 py-2 min-h-[44px] text-gray-600 hover:bg-gray-100 rounded-lg transition-colors font-medium"
             >
               Annuler
             </button>
             <button
               onClick={handleConfirmSelection}
-              className="px-6 py-2 bg-[#29235C] hover:bg-[#1f1a4d] text-white rounded-lg font-medium"
+              className="w-full sm:w-auto px-6 py-2 min-h-[44px] bg-[#29235C] hover:bg-[#1f1a4d] text-white rounded-lg font-medium"
             >
               Utiliser ces informations
             </button>

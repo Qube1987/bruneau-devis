@@ -140,7 +140,7 @@ export const DevisList: React.FC<DevisListProps> = ({ onLoadDevis, onNewDevis })
             <div className="space-y-4">
               {devisList.map((devis) => (
                 <div key={devis.id} className="border border-gray-200 rounded-lg p-4 hover:shadow-md transition-shadow">
-                  <div className="flex items-center justify-between">
+                  <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
                     <div className="flex-1">
                       <div className="flex items-center gap-3 mb-2">
                         <h3 className="font-semibold text-gray-900">
@@ -149,7 +149,7 @@ export const DevisList: React.FC<DevisListProps> = ({ onLoadDevis, onNewDevis })
                         </h3>
                         {getStatusBadge(devis.status)}
                       </div>
-                      
+
                       <div className="flex items-center gap-4 text-sm text-gray-600 mb-2">
                         <div className="flex items-center gap-1">
                           <User className="w-4 h-4" />
@@ -158,7 +158,7 @@ export const DevisList: React.FC<DevisListProps> = ({ onLoadDevis, onNewDevis })
                         <div className="flex items-center gap-1">
                           <Calendar className="w-4 h-4" />
                           <span>
-                            {devis.updated_at 
+                            {devis.updated_at
                               ? format(new Date(devis.updated_at), 'dd/MM/yyyy à HH:mm', { locale: fr })
                               : 'Date inconnue'
                             }
@@ -190,43 +190,43 @@ export const DevisList: React.FC<DevisListProps> = ({ onLoadDevis, onNewDevis })
                       )}
                     </div>
 
-                    <div className="flex items-center gap-2">
+                    <div className="flex flex-wrap items-center gap-2">
                       <button
                         onClick={() => handleViewStock(devis)}
                         disabled={!hasStockReferences(devis) || stockLoading}
-                        className="flex items-center gap-2 px-3 py-2 text-blue-700 border border-blue-300 rounded-lg hover:bg-blue-50 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+                        className="flex flex-1 sm:flex-none justify-center items-center gap-2 px-3 py-2 min-h-[44px] text-blue-700 border border-blue-300 rounded-lg hover:bg-blue-50 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
                         title={!hasStockReferences(devis) ? "Aucune référence stock associée" : "Voir le stock"}
                       >
-                        <Package className="w-4 h-4" />
-                        Stock
+                        <Package className="w-5 h-5" />
+                        <span>Stock</span>
                       </button>
 
                       {devis.access_token && (
                         <button
                           onClick={() => handleCopyLink(devis.access_token!)}
-                          className="flex items-center gap-2 px-3 py-2 text-gray-700 border border-gray-300 rounded-lg hover:bg-gray-50 transition-colors"
+                          className="flex flex-1 sm:flex-none justify-center items-center gap-2 px-3 py-2 min-h-[44px] text-gray-700 border border-gray-300 rounded-lg hover:bg-gray-50 transition-colors"
                           title="Copier le lien de visualisation"
                         >
-                          <LinkIcon className="w-4 h-4" />
-                          Lien
+                          <LinkIcon className="w-5 h-5" />
+                          <span>Lien</span>
                         </button>
                       )}
 
                       <button
                         onClick={() => onLoadDevis(devis)}
-                        className="flex items-center gap-2 px-3 py-2 text-[#29235C] border border-[#29235C] rounded-lg hover:bg-[#29235C] hover:text-white transition-colors"
+                        className="flex flex-1 sm:flex-none justify-center items-center gap-2 px-3 py-2 min-h-[44px] text-[#29235C] border border-[#29235C] rounded-lg hover:bg-[#29235C] hover:text-white transition-colors"
                       >
-                        <Eye className="w-4 h-4" />
-                        Ouvrir
+                        <Eye className="w-5 h-5" />
+                        <span>Ouvrir</span>
                       </button>
 
                       <button
                         onClick={() => {
                           handleDeleteDevis(devis);
                         }}
-                        className="p-2 text-red-500 hover:bg-red-50 rounded-lg transition-colors"
+                        className="p-3 min-w-[44px] min-h-[44px] text-red-500 hover:bg-red-50 rounded-lg transition-colors flex items-center justify-center flex-shrink-0"
                       >
-                        <Trash2 className="w-4 h-4" />
+                        <Trash2 className="w-5 h-5" />
                       </button>
                     </div>
                   </div>

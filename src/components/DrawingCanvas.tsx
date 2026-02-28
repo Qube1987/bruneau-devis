@@ -35,7 +35,7 @@ export const DrawingCanvas: React.FC<DrawingCanvasProps> = ({ onSave, onClose, i
     };
 
     updateCanvasSize();
-    
+
     // Load initial data if provided
     if (initialData) {
       const img = new Image();
@@ -92,7 +92,7 @@ export const DrawingCanvas: React.FC<DrawingCanvasProps> = ({ onSave, onClose, i
   const startDrawing = (pos: { x: number; y: number }) => {
     setIsDrawing(true);
     setStartPos(pos);
-    
+
     const canvas = canvasRef.current;
     const ctx = canvas?.getContext('2d');
     if (!ctx) return;
@@ -203,42 +203,42 @@ export const DrawingCanvas: React.FC<DrawingCanvasProps> = ({ onSave, onClose, i
   return (
     <div className="fixed inset-0 bg-black/90 z-50 flex flex-col">
       {/* Header */}
-      <div className="bg-white p-4 flex items-center justify-between shadow-lg">
-        <h2 className="text-lg font-semibold text-[#29235C]">Croquis de l'installation</h2>
-        
-        <div className="flex items-center gap-2">
+      <div className="bg-white p-4 flex flex-col sm:flex-row items-center justify-between gap-4 shadow-lg">
+        <h2 className="text-lg font-bold text-[#29235C]">Croquis de l'installation</h2>
+
+        <div className="flex flex-wrap items-center justify-center gap-2 w-full sm:w-auto">
           <button
             onClick={undo}
             disabled={historyIndex <= 0}
-            className="p-2 rounded-lg bg-gray-100 hover:bg-gray-200 disabled:opacity-50 disabled:cursor-not-allowed"
+            className="p-2 min-w-[44px] min-h-[44px] flex items-center justify-center rounded-lg bg-gray-100 hover:bg-gray-200 disabled:opacity-50 disabled:cursor-not-allowed"
           >
-            <Undo className="w-4 h-4" />
+            <Undo className="w-5 h-5" />
           </button>
           <button
             onClick={redo}
             disabled={historyIndex >= history.length - 1}
-            className="p-2 rounded-lg bg-gray-100 hover:bg-gray-200 disabled:opacity-50 disabled:cursor-not-allowed"
+            className="p-2 min-w-[44px] min-h-[44px] flex items-center justify-center rounded-lg bg-gray-100 hover:bg-gray-200 disabled:opacity-50 disabled:cursor-not-allowed"
           >
-            <Redo className="w-4 h-4" />
+            <Redo className="w-5 h-5" />
           </button>
           <button
             onClick={clearCanvas}
-            className="px-3 py-2 text-sm bg-gray-100 hover:bg-gray-200 rounded-lg"
+            className="px-3 py-2 min-h-[44px] text-sm bg-gray-100 hover:bg-gray-200 rounded-lg whitespace-nowrap"
           >
             Effacer tout
           </button>
           <button
             onClick={handleSave}
-            className="px-4 py-2 bg-[#E72C63] text-white rounded-lg hover:bg-[#d12656] flex items-center gap-2"
+            className="px-4 py-2 min-h-[44px] bg-[#E72C63] text-white rounded-lg hover:bg-[#d12656] flex items-center gap-2 flex-grow sm:flex-grow-0 justify-center"
           >
-            <Save className="w-4 h-4" />
+            <Save className="w-5 h-5" />
             Enregistrer
           </button>
           <button
             onClick={onClose}
-            className="p-2 rounded-lg hover:bg-gray-100"
+            className="p-2 min-w-[44px] min-h-[44px] flex items-center justify-center rounded-lg hover:bg-gray-100 ml-auto sm:ml-0"
           >
-            <X className="w-4 h-4" />
+            <X className="w-6 h-6" />
           </button>
         </div>
       </div>
@@ -250,14 +250,13 @@ export const DrawingCanvas: React.FC<DrawingCanvasProps> = ({ onSave, onClose, i
             <button
               key={id}
               onClick={() => setTool(id as typeof tool)}
-              className={`p-3 rounded-lg flex items-center justify-center ${
-                tool === id 
-                  ? 'bg-[#29235C] text-white' 
+              className={`p-3 min-w-[44px] min-h-[44px] rounded-lg flex items-center justify-center flex-shrink-0 ${tool === id
+                  ? 'bg-[#29235C] text-white'
                   : 'bg-gray-100 hover:bg-gray-200 text-gray-700'
-              }`}
+                }`}
               title={label}
             >
-              <Icon className="w-5 h-5" />
+              <Icon className="w-6 h-6" />
             </button>
           ))}
         </div>
@@ -269,9 +268,8 @@ export const DrawingCanvas: React.FC<DrawingCanvasProps> = ({ onSave, onClose, i
             <button
               key={c}
               onClick={() => setColor(c)}
-              className={`w-8 h-8 rounded-full border-2 ${
-                color === c ? 'border-gray-800' : 'border-gray-300'
-              }`}
+              className={`w-11 h-11 flex-shrink-0 rounded-full border-2 transition-transform hover:scale-110 ${color === c ? 'border-gray-800 scale-110' : 'border-gray-300'
+                }`}
               style={{ backgroundColor: c }}
             />
           ))}

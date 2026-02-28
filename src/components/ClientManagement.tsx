@@ -338,9 +338,8 @@ export const ClientManagement: React.FC = () => {
             {filteredClients.map((client) => (
               <div
                 key={client.id}
-                className={`p-4 hover:bg-gray-50 cursor-pointer transition-colors ${
-                  selectedClient?.id === client.id ? 'bg-blue-50' : ''
-                }`}
+                className={`p-4 hover:bg-gray-50 cursor-pointer transition-colors ${selectedClient?.id === client.id ? 'bg-blue-50' : ''
+                  }`}
                 onClick={() => setSelectedClient(client)}
               >
                 <div className="flex justify-between items-start">
@@ -379,18 +378,18 @@ export const ClientManagement: React.FC = () => {
                         e.stopPropagation();
                         handleEdit(client);
                       }}
-                      className="p-2 text-blue-600 hover:bg-blue-50 rounded"
+                      className="p-3 text-blue-600 hover:bg-blue-50 rounded-lg min-h-[44px] min-w-[44px] flex items-center justify-center"
                     >
-                      <Edit className="w-4 h-4" />
+                      <Edit className="w-5 h-5" />
                     </button>
                     <button
                       onClick={(e) => {
                         e.stopPropagation();
                         handleDelete(client.id);
                       }}
-                      className="p-2 text-red-600 hover:bg-red-50 rounded"
+                      className="p-3 text-red-600 hover:bg-red-50 rounded-lg min-h-[44px] min-w-[44px] flex items-center justify-center"
                     >
-                      <Trash2 className="w-4 h-4" />
+                      <Trash2 className="w-5 h-5" />
                     </button>
                   </div>
                 </div>
@@ -506,9 +505,9 @@ export const ClientManagement: React.FC = () => {
                 </h2>
                 <button
                   onClick={resetForm}
-                  className="p-2 hover:bg-gray-100 rounded-full transition-colors"
+                  className="p-3 hover:bg-gray-100 rounded-full transition-colors min-h-[44px] min-w-[44px] flex items-center justify-center"
                 >
-                  <X className="w-5 h-5" />
+                  <X className="w-6 h-6" />
                 </button>
               </div>
 

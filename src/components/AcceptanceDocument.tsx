@@ -37,7 +37,7 @@ export const AcceptanceDocument: React.FC<AcceptanceDocumentProps> = ({
           <h2 className="text-2xl font-bold text-[#29235C]">Document de validation du devis</h2>
           <button
             onClick={onCancel}
-            className="p-2 hover:bg-gray-100 rounded-lg transition-colors"
+            className="p-2 min-w-[44px] min-h-[44px] flex items-center justify-center hover:bg-gray-100 rounded-lg transition-colors"
             disabled={accepting}
           >
             <X className="w-6 h-6 text-gray-500" />
@@ -197,11 +197,11 @@ export const AcceptanceDocument: React.FC<AcceptanceDocumentProps> = ({
                 <h4 className="font-semibold text-gray-900 mb-2">11. Litiges</h4>
                 <p>
                   En cas de litige avec un client professionnel, compétence expresse est attribuée aux tribunaux du ressort du siège social de Bruneau Protection.
-En cas de litige avec un client particulier, les règles de compétence légale s’appliquent.
+                  En cas de litige avec un client particulier, les règles de compétence légale s’appliquent.
                 </p>
               </section>
 
-               <section>
+              <section>
                 <h4 className="font-semibold text-gray-900 mb-2">12. Retard de paiement</h4>
                 <p>
                   Tout retard de paiement entraîne de plein droit l’application de pénalités calculées sur la base du taux légal en vigueur. Pour les clients professionnels, une indemnité forfaitaire de 40 € pour frais de recouvrement sera exigible.
@@ -227,7 +227,7 @@ En cas de litige avec un client particulier, les règles de compétence légale 
               value={signatoryName}
               onChange={(e) => setSignatoryName(e.target.value)}
               placeholder="Prénom NOM"
-              className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[#29235C] focus:border-[#29235C]"
+              className="w-full px-4 py-3 min-h-[44px] border border-gray-300 rounded-lg focus:ring-2 focus:ring-[#29235C] focus:border-[#29235C]"
               disabled={accepting}
             />
           </div>
@@ -254,14 +254,14 @@ En cas de litige avec un client particulier, les règles de compétence légale 
             <button
               onClick={onCancel}
               disabled={accepting}
-              className="flex-1 px-6 py-3 border border-gray-300 text-gray-700 rounded-lg hover:bg-gray-50 transition-colors font-medium disabled:opacity-50"
+              className="flex-1 px-6 py-3 min-h-[44px] border border-gray-300 text-gray-700 rounded-lg hover:bg-gray-50 transition-colors font-medium disabled:opacity-50"
             >
               Annuler
             </button>
             <button
               onClick={handleSubmit}
               disabled={!canSubmit || accepting}
-              className="flex-1 flex items-center justify-center gap-2 px-6 py-3 bg-[#E72C63] text-white rounded-lg hover:bg-[#d12656] transition-colors disabled:opacity-50 disabled:cursor-not-allowed font-medium"
+              className="flex-1 flex items-center justify-center gap-2 px-6 py-3 min-h-[44px] bg-[#E72C63] text-white rounded-lg hover:bg-[#d12656] transition-colors disabled:opacity-50 disabled:cursor-not-allowed font-medium"
             >
               {accepting ? (
                 <>

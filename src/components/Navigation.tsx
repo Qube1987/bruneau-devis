@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { FileText, LogOut, Users, Package, Image, Bell } from 'lucide-react';
+import { FileText, LogOut, Users, Package, Image, Bell, Menu, X } from 'lucide-react';
 import { useAuth } from '../hooks/useAuth';
 import { supabase } from '../lib/supabase';
 
@@ -11,6 +11,7 @@ interface NavigationProps {
 export const Navigation: React.FC<NavigationProps> = ({ currentView, onViewChange }) => {
   const { signOut, userType } = useAuth();
   const [unreadCount, setUnreadCount] = useState(0);
+  const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
 
   useEffect(() => {
     loadUnreadCount();
@@ -79,7 +80,7 @@ export const Navigation: React.FC<NavigationProps> = ({ currentView, onViewChang
               className="h-8 w-auto"
             />
           </div>
-          
+
           <div className="hidden md:flex items-center gap-1">
             {navItems.map((item) => {
               const Icon = item.icon;
@@ -87,11 +88,10 @@ export const Navigation: React.FC<NavigationProps> = ({ currentView, onViewChang
                 <button
                   key={item.id}
                   onClick={() => onViewChange(item.id)}
-                  className={`px-4 py-2 rounded-lg transition-colors flex items-center gap-2 relative ${
-                    currentView === item.id
+                  className={`px-4 py-2 rounded-lg transition-colors flex items-center gap-2 relative ${currentView === item.id
                       ? 'bg-[#E72C63] text-white'
                       : 'text-gray-300 hover:text-white hover:bg-white/10'
-                  }`}
+                    }`}
                 >
                   <Icon className="w-4 h-4" />
                   <span className="text-sm font-medium">{item.label}</span>
@@ -108,40 +108,62 @@ export const Navigation: React.FC<NavigationProps> = ({ currentView, onViewChang
 
         <button
           onClick={handleSignOut}
-          className="flex items-center gap-2 px-4 py-2 rounded-lg text-gray-300 hover:text-white hover:bg-white/10 transition-colors"
+          className="hidden md:flex items-center gap-2 px-4 py-2 rounded-lg text-gray-300 hover:text-white hover:bg-white/10 transition-colors"
         >
           <LogOut className="w-4 h-4" />
-          <span className="hidden sm:inline text-sm">Déconnexion</span>
+          <span className="text-sm">Déconnexion</span>
+        </button>
+
+        {/* Mobile menu button */}
+        <button
+          onClick={() => setIsMobileMenuOpen(!isMobileMenuOpen)}
+          className="md:hidden p-2 rounded-lg text-gray-300 hover:text-white hover:bg-white/10 transition-colors"
+        >
+          {isMobileMenuOpen ? <X className="w-6 h-6" /> : <Menu className="w-6 h-6" />}
         </button>
       </div>
 
-      {/* Mobile navigation */}
-      <div className="md:hidden mt-4 overflow-x-auto">
-        <div className="flex gap-2 pb-2 min-w-max">
-          {navItems.map((item) => {
-            const Icon = item.icon;
-            return (
-              <button
-                key={item.id}
-                onClick={() => onViewChange(item.id)}
-                className={`px-3 py-2 rounded-lg transition-colors flex flex-col items-center gap-1 flex-shrink-0 relative ${
-                  currentView === item.id
-                    ? 'bg-[#E72C63] text-white'
-                    : 'text-gray-300 hover:text-white'
-                }`}
-              >
-                <Icon className="w-5 h-5" />
-                <span className="text-xs whitespace-nowrap">{item.label}</span>
-                {item.badge && (
-                  <span className="absolute -top-1 -right-1 bg-[#E72C63] text-white text-xs w-5 h-5 flex items-center justify-center rounded-full">
-                    {item.badge}
-                  </span>
-                )}
-              </button>
-            );
-          })}
+      {/* Mobile navigation overlay */}
+      {isMobileMenuOpen && (
+        <div className="md:hidden fixed inset-0 top-[72px] bg-[#29235C] z-50 flex flex-col p-4 overflow-y-auto">
+          <div className="flex flex-col gap-2 flex-1">
+            {navItems.map((item) => {
+              const Icon = item.icon;
+              return (
+                <button
+                  key={item.id}
+                  onClick={() => {
+                    onViewChange(item.id);
+                    setIsMobileMenuOpen(false);
+                  }}
+                  className={`px-4 py-3 min-h-[48px] rounded-lg transition-colors flex items-center gap-3 relative ${currentView === item.id
+                      ? 'bg-[#E72C63] text-white'
+                      : 'text-gray-300 hover:text-white hover:bg-white/10'
+                    }`}
+                >
+                  <Icon className="w-5 h-5 flex-shrink-0" />
+                  <span className="text-base font-medium">{item.label}</span>
+                  {item.badge && (
+                    <span className="bg-[#E72C63] text-white text-xs px-2 py-0.5 rounded-full ml-auto">
+                      {item.badge}
+                    </span>
+                  )}
+                </button>
+              );
+            })}
+          </div>
+          <button
+            onClick={() => {
+              handleSignOut();
+              setIsMobileMenuOpen(false);
+            }}
+            className="flex items-center gap-3 px-4 py-3 min-h-[48px] mt-4 rounded-lg text-gray-300 hover:text-white hover:bg-white/10 transition-colors border-t border-white/10"
+          >
+            <LogOut className="w-5 h-5 flex-shrink-0" />
+            <span className="text-base font-medium">Déconnexion</span>
+          </button>
         </div>
-      </div>
+      )}
     </nav>
   );
 };

@@ -94,7 +94,7 @@ export const DevisForm: React.FC<DevisFormProps> = ({ initialDevis, onBack }) =>
         console.error('Erreur lors du chargement du logo:', error);
       }
     };
-    
+
     loadLogo();
   }, []);
 
@@ -351,15 +351,15 @@ export const DevisForm: React.FC<DevisFormProps> = ({ initialDevis, onBack }) =>
         const lignesWithBase64Images = await Promise.all(
           devis.lignes.map(async (ligne) => {
             if (!ligne.product) return ligne;
-            
-            const photoSquareBase64 = ligne.product.photo_square_path 
+
+            const photoSquareBase64 = ligne.product.photo_square_path
               ? await fetchAndConvertToBase64(getPublicUrlForStoragePath(ligne.product.photo_square_path))
               : null;
-            
-            const photoBase64 = ligne.product.photo_path 
+
+            const photoBase64 = ligne.product.photo_path
               ? await fetchAndConvertToBase64(getPublicUrlForStoragePath(ligne.product.photo_path))
               : null;
-            
+
             return {
               ...ligne,
               product: {
@@ -370,7 +370,7 @@ export const DevisForm: React.FC<DevisFormProps> = ({ initialDevis, onBack }) =>
             };
           })
         );
-        
+
         const pdfData: Devis = {
           ...devis,
           croquis_path: croquis || undefined,
@@ -385,7 +385,7 @@ export const DevisForm: React.FC<DevisFormProps> = ({ initialDevis, onBack }) =>
         setTimeout(() => setSaveMessage(null), 3000);
       }
     };
-    
+
     handleGeneratePDFAsync();
   };
 
@@ -627,7 +627,7 @@ export const DevisForm: React.FC<DevisFormProps> = ({ initialDevis, onBack }) =>
           {onBack && (
             <button
               onClick={onBack}
-              className="mb-4 flex items-center gap-2 text-[#29235C] hover:text-[#1f1a4d] transition-colors"
+              className="mb-4 flex items-center gap-2 text-[#29235C] hover:text-[#1f1a4d] transition-colors min-h-[44px]"
             >
               ← Retour à la liste
             </button>
@@ -660,7 +660,7 @@ export const DevisForm: React.FC<DevisFormProps> = ({ initialDevis, onBack }) =>
                 </div>
               )}
             </div>
-            
+
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4 w-full">
               <div>
                 <label className="block text-sm font-medium text-gray-700 mb-1">Nom</label>
@@ -671,10 +671,10 @@ export const DevisForm: React.FC<DevisFormProps> = ({ initialDevis, onBack }) =>
                     ...prev,
                     client: { ...prev.client, nom: e.target.value }
                   }))}
-                  className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[#29235C] focus:border-transparent"
+                  className="w-full px-3 py-2 min-h-[44px] border border-gray-300 rounded-lg focus:ring-2 focus:ring-[#29235C] focus:border-transparent"
                 />
               </div>
-              
+
               <div>
                 <label className="block text-sm font-medium text-gray-700 mb-1">Prénom</label>
                 <input
@@ -684,10 +684,10 @@ export const DevisForm: React.FC<DevisFormProps> = ({ initialDevis, onBack }) =>
                     ...prev,
                     client: { ...prev.client, prenom: e.target.value }
                   }))}
-                  className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[#29235C] focus:border-transparent"
+                  className="w-full px-3 py-2 min-h-[44px] border border-gray-300 rounded-lg focus:ring-2 focus:ring-[#29235C] focus:border-transparent"
                 />
               </div>
-              
+
               <div>
                 <label className="block text-sm font-medium text-gray-700 mb-1">
                   Email <span className="text-red-500">*</span>
@@ -700,12 +700,12 @@ export const DevisForm: React.FC<DevisFormProps> = ({ initialDevis, onBack }) =>
                     ...prev,
                     client: { ...prev.client, email: e.target.value }
                   }))}
-                  className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[#29235C] focus:border-transparent"
+                  className="w-full px-3 py-2 min-h-[44px] border border-gray-300 rounded-lg focus:ring-2 focus:ring-[#29235C] focus:border-transparent"
                   placeholder="email@exemple.fr"
                   required
                 />
               </div>
-              
+
               <div>
                 <label className="block text-sm font-medium text-gray-700 mb-1">Téléphone</label>
                 <input
@@ -715,10 +715,10 @@ export const DevisForm: React.FC<DevisFormProps> = ({ initialDevis, onBack }) =>
                     ...prev,
                     client: { ...prev.client, telephone: e.target.value }
                   }))}
-                  className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[#29235C] focus:border-transparent"
+                  className="w-full px-3 py-2 min-h-[44px] border border-gray-300 rounded-lg focus:ring-2 focus:ring-[#29235C] focus:border-transparent"
                 />
               </div>
-              
+
               <div className="md:col-span-2">
                 <label className="block text-sm font-medium text-gray-700 mb-1">Adresse</label>
                 <input
@@ -728,7 +728,7 @@ export const DevisForm: React.FC<DevisFormProps> = ({ initialDevis, onBack }) =>
                     ...prev,
                     client: { ...prev.client, adresse: e.target.value }
                   }))}
-                  className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[#29235C] focus:border-transparent"
+                  className="w-full px-3 py-2 min-h-[44px] border border-gray-300 rounded-lg focus:ring-2 focus:ring-[#29235C] focus:border-transparent"
                 />
               </div>
             </div>
@@ -849,7 +849,7 @@ export const DevisForm: React.FC<DevisFormProps> = ({ initialDevis, onBack }) =>
               type="text"
               value={devis.titre_affaire}
               onChange={(e) => setDevis(prev => ({ ...prev, titre_affaire: e.target.value }))}
-              className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[#29235C] focus:border-transparent"
+              className="w-full px-3 py-2 min-h-[44px] border border-gray-300 rounded-lg focus:ring-2 focus:ring-[#29235C] focus:border-transparent"
             />
           </div>
 
@@ -937,18 +937,17 @@ export const DevisForm: React.FC<DevisFormProps> = ({ initialDevis, onBack }) =>
           {devis.lignes.length > 0 && (
             <div className="bg-gray-50 rounded-lg p-4 mb-6">
               <h3 className="text-lg font-semibold text-[#29235C] mb-4">Articles sélectionnés</h3>
-              
+
               <div className="space-y-3">
                 {devis.lignes.map(line => (
-                  <div key={line.id} className={`p-4 rounded-lg flex items-center justify-between ${
-                    line.quantity === 0
+                  <div key={line.id} className={`p-4 rounded-lg flex items-center justify-between ${line.quantity === 0
                       ? 'bg-blue-50 border-2 border-blue-200'
                       : 'bg-white'
-                  }`}>
+                    }`}>
                     <div className="flex-1">
-                      <div className="flex items-center gap-4">
+                      <div className="flex flex-col sm:flex-row sm:items-center gap-4">
                         <div className="flex-1">
-                          <div className="flex items-center gap-2">
+                          <div className="flex flex-wrap items-center gap-2">
                             <p className={`font-medium ${line.quantity === 0 ? 'text-blue-800' : 'text-gray-900'}`}>
                               {line.name}
                             </p>
@@ -961,61 +960,63 @@ export const DevisForm: React.FC<DevisFormProps> = ({ initialDevis, onBack }) =>
                           <p className="text-sm text-gray-500">{line.reference}</p>
                         </div>
 
-                        <div className="flex items-center gap-2">
-                          <button
-                            onClick={() => updateLineQuantity(line.id, line.quantity - 1)}
-                            className="p-1 rounded bg-gray-200 hover:bg-gray-300"
-                          >
-                            <Minus className="w-4 h-4" />
-                          </button>
-                          <span className="w-12 text-center font-medium">{line.quantity}</span>
-                          <button
-                            onClick={() => updateLineQuantity(line.id, line.quantity + 1)}
-                            className="p-1 rounded bg-gray-200 hover:bg-gray-300"
-                          >
-                            <Plus className="w-4 h-4" />
-                          </button>
-                        </div>
-
-                        <div className="text-right">
-                          {editingPrice?.lineId === line.id ? (
-                            <input
-                              type="number"
-                              step="0.01"
-                              value={editingPrice.value}
-                              onChange={(e) => handlePriceChange(e.target.value)}
-                              onBlur={handlePriceBlur}
-                              onKeyDown={handlePriceKeyDown}
-                              autoFocus
-                              className="w-24 px-2 py-1 text-right border border-[#29235C] rounded focus:ring-2 focus:ring-[#29235C] font-semibold"
-                            />
-                          ) : (
+                        <div className="flex items-center gap-3">
+                          <div className="flex items-center gap-2">
                             <button
-                              onClick={() => handlePriceClick(line.id, line.price_ht)}
-                              className="text-right hover:bg-gray-100 px-2 py-1 rounded transition-colors"
-                              title="Cliquer pour modifier le prix"
+                              onClick={() => updateLineQuantity(line.id, line.quantity - 1)}
+                              className="p-2 min-w-[44px] min-h-[44px] flex items-center justify-center rounded-lg bg-gray-200 hover:bg-gray-300 transition-colors"
                             >
-                              {line.quantity === 0 ? (
-                                <>
-                                  <p className="font-semibold text-blue-700">{line.price_ht.toFixed(2)} € HT/unité</p>
-                                  <p className="text-sm text-blue-600">{(line.price_ht * (1 + devis.taux_tva / 100)).toFixed(2)} € TTC/unité</p>
-                                </>
-                              ) : (
-                                <>
-                                  <p className="font-semibold text-[#29235C]">{line.total_ttc.toFixed(2)} € TTC</p>
-                                  <p className="text-sm text-gray-500">{line.price_ht.toFixed(2)} € HT/unité</p>
-                                </>
-                              )}
+                              <Minus className="w-5 h-5" />
                             </button>
-                          )}
-                        </div>
+                            <span className="w-12 text-center font-medium">{line.quantity}</span>
+                            <button
+                              onClick={() => updateLineQuantity(line.id, line.quantity + 1)}
+                              className="p-2 min-w-[44px] min-h-[44px] flex items-center justify-center rounded-lg bg-gray-200 hover:bg-gray-300 transition-colors"
+                            >
+                              <Plus className="w-5 h-5" />
+                            </button>
+                          </div>
 
-                        <button
-                          onClick={() => removeLine(line.id)}
-                          className="p-1 text-red-500 hover:bg-red-50 rounded"
-                        >
-                          <Trash2 className="w-4 h-4" />
-                        </button>
+                          <div className="text-right flex-1 sm:flex-none">
+                            {editingPrice?.lineId === line.id ? (
+                              <input
+                                type="number"
+                                step="0.01"
+                                value={editingPrice.value}
+                                onChange={(e) => handlePriceChange(e.target.value)}
+                                onBlur={handlePriceBlur}
+                                onKeyDown={handlePriceKeyDown}
+                                autoFocus
+                                className="w-24 px-2 py-1 min-h-[44px] text-right border border-[#29235C] rounded focus:ring-2 focus:ring-[#29235C] font-semibold"
+                              />
+                            ) : (
+                              <button
+                                onClick={() => handlePriceClick(line.id, line.price_ht)}
+                                className="text-right hover:bg-gray-100 px-2 py-2 min-h-[44px] rounded transition-colors w-full sm:w-auto"
+                                title="Cliquer pour modifier le prix"
+                              >
+                                {line.quantity === 0 ? (
+                                  <>
+                                    <p className="font-semibold text-blue-700">{line.price_ht.toFixed(2)} € HT/unité</p>
+                                    <p className="text-sm text-blue-600">{(line.price_ht * (1 + devis.taux_tva / 100)).toFixed(2)} € TTC/unité</p>
+                                  </>
+                                ) : (
+                                  <>
+                                    <p className="font-semibold text-[#29235C]">{line.total_ttc.toFixed(2)} € TTC</p>
+                                    <p className="text-sm text-gray-500">{line.price_ht.toFixed(2)} € HT/unité</p>
+                                  </>
+                                )}
+                              </button>
+                            )}
+                          </div>
+
+                          <button
+                            onClick={() => removeLine(line.id)}
+                            className="p-2 min-w-[44px] min-h-[44px] flex items-center justify-center text-red-500 hover:bg-red-50 rounded-lg transition-colors"
+                          >
+                            <Trash2 className="w-5 h-5" />
+                          </button>
+                        </div>
                       </div>
                     </div>
                   </div>
@@ -1030,7 +1031,7 @@ export const DevisForm: React.FC<DevisFormProps> = ({ initialDevis, onBack }) =>
               <Calculator className="w-5 h-5" />
               <h3 className="text-lg font-semibold">Totaux</h3>
             </div>
-            
+
             <div className="grid grid-cols-2 gap-4 text-center">
               <div>
                 <p className="text-sm opacity-90">Total HT</p>
@@ -1056,7 +1057,7 @@ export const DevisForm: React.FC<DevisFormProps> = ({ initialDevis, onBack }) =>
           {/* Options */}
           <div className="bg-gray-50 rounded-lg p-4 mb-6">
             <h3 className="text-lg font-semibold text-[#29235C] mb-4">Options</h3>
-            
+
             <div className="space-y-3">
               <label className="flex items-center gap-3">
                 <input
@@ -1158,13 +1159,12 @@ export const DevisForm: React.FC<DevisFormProps> = ({ initialDevis, onBack }) =>
           </div>
 
           {/* Actions */}
-          <div className="flex flex-wrap gap-3 justify-end">
+          <div className="flex flex-col sm:flex-row flex-wrap gap-3 justify-end mt-8">
             {saveMessage && (
-              <div className={`flex items-center gap-2 px-4 py-2 rounded-lg ${
-                saveMessage.type === 'success' 
-                  ? 'bg-green-100 text-green-800' 
+              <div className={`flex items-center gap-2 px-4 py-2 rounded-lg ${saveMessage.type === 'success'
+                  ? 'bg-green-100 text-green-800'
                   : 'bg-red-100 text-red-800'
-              }`}>
+                }`}>
                 {saveMessage.type === 'success' ? (
                   <CheckCircle className="w-4 h-4" />
                 ) : (
@@ -1173,24 +1173,24 @@ export const DevisForm: React.FC<DevisFormProps> = ({ initialDevis, onBack }) =>
                 <span className="text-sm">{saveMessage.message}</span>
               </div>
             )}
-            
+
             <button
               onClick={handleSaveDraft}
               disabled={saveLoading}
-              className="flex items-center gap-2 px-4 py-2 border border-gray-300 text-gray-700 rounded-lg hover:bg-gray-50 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+              className="flex items-center justify-center gap-2 px-4 py-2 min-h-[44px] border border-gray-300 text-gray-700 rounded-lg hover:bg-gray-50 transition-colors disabled:opacity-50 disabled:cursor-not-allowed w-full sm:w-auto"
             >
-              <Save className="w-4 h-4" />
+              <Save className="w-5 h-5" />
               {saveLoading ? 'Sauvegarde...' : 'Enregistrer devis'}
             </button>
-            
+
             <button
               onClick={handleGeneratePDF}
-              className="flex items-center gap-2 px-4 py-2 bg-[#29235C] text-white rounded-lg hover:bg-[#1f1a4d] transition-colors"
+              className="flex items-center justify-center gap-2 px-4 py-2 min-h-[44px] bg-[#29235C] text-white rounded-lg hover:bg-[#1f1a4d] transition-colors w-full sm:w-auto"
             >
-              <FileText className="w-4 h-4" />
+              <FileText className="w-5 h-5" />
               Générer PDF
             </button>
-            
+
             <button
               onClick={() => {
                 // Validate client email before opening modal
@@ -1210,9 +1210,9 @@ export const DevisForm: React.FC<DevisFormProps> = ({ initialDevis, onBack }) =>
                 }));
                 setShowEmailModal(true);
               }}
-              className="flex items-center gap-2 px-4 py-2 bg-[#E72C63] text-white rounded-lg hover:bg-[#d12656] transition-colors"
+              className="flex items-center justify-center gap-2 px-4 py-2 min-h-[44px] bg-[#E72C63] text-white rounded-lg hover:bg-[#d12656] transition-colors w-full sm:w-auto"
             >
-              <Send className="w-4 h-4" />
+              <Send className="w-5 h-5" />
               Envoyer par email
             </button>
           </div>
@@ -1259,7 +1259,7 @@ export const DevisForm: React.FC<DevisFormProps> = ({ initialDevis, onBack }) =>
                   required
                 />
               </div>
-              
+
               <div>
                 <label className="block text-sm font-medium text-gray-700 mb-1">
                   Objet (optionnel)
@@ -1272,7 +1272,7 @@ export const DevisForm: React.FC<DevisFormProps> = ({ initialDevis, onBack }) =>
                   placeholder={`Devis ${devis.titre_affaire} - Bruneau Protection`}
                 />
               </div>
-              
+
               <div>
                 <label className="block text-sm font-medium text-gray-700 mb-1">
                   Message personnalisé (optionnel)
@@ -1285,7 +1285,7 @@ export const DevisForm: React.FC<DevisFormProps> = ({ initialDevis, onBack }) =>
                   placeholder="Message personnalisé à ajouter à l'email..."
                 />
               </div>
-              
+
               <div className="bg-blue-50 p-3 rounded-lg">
                 <p className="text-sm text-blue-800">
                   📎 Le devis sera envoyé en pièce jointe au format PDF avec un email professionnel personnalisé.

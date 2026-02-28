@@ -53,17 +53,17 @@ export const ProductManagement: React.FC = () => {
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    
+
     if (!newProduct.reference || !newProduct.name || !newProduct.category || !newProduct.description_short) {
       alert('Veuillez remplir tous les champs obligatoires');
       return;
     }
 
     setSaving(true);
-    
+
     try {
       const result = await addProduct(newProduct as Omit<Product, 'id'>);
-      
+
       if (result.success) {
         // Reset form
         setNewProduct({
@@ -309,10 +309,11 @@ export const ProductManagement: React.FC = () => {
             </h2>
             <button
               onClick={() => setShowAddForm(true)}
-              className="flex items-center gap-2 px-4 py-2 bg-[#E72C63] text-white rounded-lg hover:bg-[#d12656] transition-colors"
+              className="flex items-center gap-2 px-4 py-2 min-h-[44px] bg-[#E72C63] text-white rounded-lg hover:bg-[#d12656] transition-colors"
             >
-              <Plus className="w-4 h-4" />
-              Ajouter un produit
+              <Plus className="w-5 h-5" />
+              <span className="hidden sm:inline">Ajouter un produit</span>
+              <span className="sm:hidden">Ajouter</span>
             </button>
           </div>
         </div>
@@ -329,7 +330,7 @@ export const ProductManagement: React.FC = () => {
                 <Package className="w-8 h-8 opacity-75" />
               </div>
             </div>
-            
+
             <div className="bg-[#E72C63] text-white p-4 rounded-lg">
               <div className="flex items-center justify-between">
                 <div>
@@ -339,7 +340,7 @@ export const ProductManagement: React.FC = () => {
                 <Tag className="w-8 h-8 opacity-75" />
               </div>
             </div>
-            
+
             <div className="bg-green-600 text-white p-4 rounded-lg">
               <div className="flex items-center justify-between">
                 <div>
@@ -385,21 +386,20 @@ export const ProductManagement: React.FC = () => {
                     </td>
                     <td className="p-3 border-b text-sm">{product.default_vat_rate}%</td>
                     <td className="p-3 border-b">
-                      <span className={`px-2 py-1 text-xs rounded-full ${
-                        product.is_active
-                          ? 'bg-green-100 text-green-800'
-                          : 'bg-red-100 text-red-800'
-                      }`}>
+                      <span className={`px-2 py-1 text-xs rounded-full ${product.is_active
+                        ? 'bg-green-100 text-green-800'
+                        : 'bg-red-100 text-red-800'
+                        }`}>
                         {product.is_active ? 'Actif' : 'Inactif'}
                       </span>
                     </td>
                     <td className="p-3 border-b">
                       <button
                         onClick={() => loadMediaForProduct(product as ProductWithMedia)}
-                        className="flex items-center gap-1 px-3 py-1.5 bg-[#29235C] text-white text-sm rounded-lg hover:bg-[#1f1a4d] transition-colors"
+                        className="flex items-center justify-center gap-2 px-3 py-2 min-h-[44px] bg-[#29235C] text-white text-sm rounded-lg hover:bg-[#1f1a4d] transition-colors"
                       >
-                        <ImageIcon className="w-3.5 h-3.5" />
-                        Médias
+                        <ImageIcon className="w-4 h-4" />
+                        <span>Médias</span>
                       </button>
                     </td>
                   </tr>
@@ -415,9 +415,9 @@ export const ProductManagement: React.FC = () => {
               <p className="text-gray-600 mb-6">Commencez par ajouter votre premier produit</p>
               <button
                 onClick={() => setShowAddForm(true)}
-                className="flex items-center gap-2 px-6 py-3 bg-[#29235C] text-white rounded-lg hover:bg-[#1f1a4d] transition-colors mx-auto"
+                className="flex items-center justify-center gap-2 px-6 py-3 min-h-[44px] bg-[#29235C] text-white rounded-lg hover:bg-[#1f1a4d] transition-colors mx-auto"
               >
-                <Plus className="w-4 h-4" />
+                <Plus className="w-5 h-5" />
                 Ajouter un produit
               </button>
             </div>
@@ -436,7 +436,7 @@ export const ProductManagement: React.FC = () => {
               </h3>
               <button
                 onClick={handleCancel}
-                className="p-1 hover:bg-gray-100 rounded"
+                className="p-3 min-w-[44px] min-h-[44px] flex items-center justify-center hover:bg-gray-100 rounded-lg transition-colors"
               >
                 <X className="w-5 h-5" />
               </button>
@@ -466,7 +466,7 @@ export const ProductManagement: React.FC = () => {
                     type="text"
                     value={newProduct.category || ''}
                     onChange={(e) => setNewProduct(prev => ({ ...prev, category: e.target.value }))}
-                    className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[#29235C] focus:border-transparent"
+                    className="w-full px-3 py-2 min-h-[44px] border border-gray-300 rounded-lg focus:ring-2 focus:ring-[#29235C] focus:border-transparent"
                     placeholder="Ex: Centrales d'alarme"
                     list="categories"
                     required
@@ -533,7 +533,7 @@ export const ProductManagement: React.FC = () => {
                       min="0"
                       value={newProduct.price_ht || ''}
                       onChange={(e) => setNewProduct(prev => ({ ...prev, price_ht: parseFloat(e.target.value) || 0 }))}
-                      className="w-full pl-10 pr-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[#29235C] focus:border-transparent"
+                      className="w-full pl-10 pr-3 py-2 min-h-[44px] border border-gray-300 rounded-lg focus:ring-2 focus:ring-[#29235C] focus:border-transparent"
                       placeholder="0.00"
                       required
                     />
@@ -547,7 +547,7 @@ export const ProductManagement: React.FC = () => {
                   <select
                     value={newProduct.default_vat_rate || 20}
                     onChange={(e) => setNewProduct(prev => ({ ...prev, default_vat_rate: parseFloat(e.target.value) }))}
-                    className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[#29235C] focus:border-transparent"
+                    className="w-full px-3 py-2 min-h-[44px] border border-gray-300 rounded-lg focus:ring-2 focus:ring-[#29235C] focus:border-transparent"
                   >
                     <option value={20}>20%</option>
                     <option value={10}>10%</option>
@@ -588,16 +588,16 @@ export const ProductManagement: React.FC = () => {
                 <button
                   type="button"
                   onClick={handleCancel}
-                  className="px-4 py-2 text-gray-600 hover:bg-gray-100 rounded-lg transition-colors"
+                  className="px-4 py-2 min-h-[44px] text-gray-600 hover:bg-gray-100 rounded-lg transition-colors"
                 >
                   Annuler
                 </button>
                 <button
                   type="submit"
                   disabled={saving}
-                  className="flex items-center gap-2 px-4 py-2 bg-[#E72C63] text-white rounded-lg hover:bg-[#d12656] transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+                  className="flex items-center justify-center gap-2 px-4 py-2 min-h-[44px] bg-[#E72C63] text-white rounded-lg hover:bg-[#d12656] transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
                 >
-                  <Save className="w-4 h-4" />
+                  <Save className="w-5 h-5" />
                   {saving ? 'Ajout en cours...' : 'Ajouter le produit'}
                 </button>
               </div>
@@ -622,7 +622,7 @@ export const ProductManagement: React.FC = () => {
               </div>
               <button
                 onClick={closeMediaModal}
-                className="p-1 hover:bg-gray-100 rounded"
+                className="p-2 min-w-[44px] min-h-[44px] flex items-center justify-center hover:bg-gray-100 rounded-lg"
               >
                 <X className="w-5 h-5" />
               </button>
@@ -653,10 +653,12 @@ export const ProductManagement: React.FC = () => {
                           <button
                             onClick={handleSaveMediaChanges}
                             disabled={savingMediaChanges}
-                            className="flex items-center gap-1 px-3 py-1.5 bg-green-600 text-white text-sm rounded-lg hover:bg-green-700 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+                            className="flex items-center justify-center gap-1 px-4 py-2 min-h-[44px] bg-green-600 text-white rounded-lg hover:bg-green-700 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
                           >
-                            <Check className="w-4 h-4" />
-                            {savingMediaChanges ? 'Enregistrement...' : `Valider (${toAdd > 0 ? `+${toAdd}` : ''}${toAdd > 0 && toRemove > 0 ? ' ' : ''}${toRemove > 0 ? `-${toRemove}` : ''})`}
+                            <Check className="w-5 h-5" />
+                            <span className="font-medium">
+                              {savingMediaChanges ? 'Enregistrement...' : `Valider (${toAdd > 0 ? `+${toAdd}` : ''}${toAdd > 0 && toRemove > 0 ? ' ' : ''}${toRemove > 0 ? `-${toRemove}` : ''})`}
+                            </span>
                           </button>
                         );
                       })()}
@@ -671,18 +673,16 @@ export const ProductManagement: React.FC = () => {
                             <button
                               key={item.id}
                               onClick={() => handleToggleMedia(item)}
-                              className={`w-full flex items-center gap-3 p-2 rounded-lg border-2 transition-all ${
-                                isSelected
-                                  ? 'border-green-500 bg-green-50'
-                                  : 'border-gray-200 bg-white hover:border-[#29235C]'
-                              }`}
+                              className={`w-full flex items-center gap-3 p-2 rounded-lg border-2 transition-all ${isSelected
+                                ? 'border-green-500 bg-green-50'
+                                : 'border-gray-200 bg-white hover:border-[#29235C]'
+                                }`}
                             >
                               {/* Checkbox */}
-                              <div className={`flex-shrink-0 w-5 h-5 rounded border-2 flex items-center justify-center ${
-                                isSelected
-                                  ? 'bg-green-500 border-green-500'
-                                  : 'border-gray-300'
-                              }`}>
+                              <div className={`flex-shrink-0 w-5 h-5 rounded border-2 flex items-center justify-center ${isSelected
+                                ? 'bg-green-500 border-green-500'
+                                : 'border-gray-300'
+                                }`}>
                                 {isSelected && <Check className="w-3 h-3 text-white" />}
                               </div>
 
@@ -782,25 +782,25 @@ export const ProductManagement: React.FC = () => {
                                 <button
                                   onClick={() => handleReorderMedia(media.id, 'up')}
                                   disabled={index === 0}
-                                  className="p-1.5 bg-gray-100 hover:bg-gray-200 rounded disabled:opacity-30 disabled:cursor-not-allowed"
+                                  className="p-2 min-w-[44px] min-h-[44px] flex items-center justify-center bg-gray-100 hover:bg-gray-200 rounded-lg disabled:opacity-30 disabled:cursor-not-allowed"
                                   title="Monter"
                                 >
-                                  <ChevronUp className="w-4 h-4" />
+                                  <ChevronUp className="w-5 h-5" />
                                 </button>
                                 <button
                                   onClick={() => handleReorderMedia(media.id, 'down')}
                                   disabled={index === mediaItems.length - 1}
-                                  className="p-1.5 bg-gray-100 hover:bg-gray-200 rounded disabled:opacity-30 disabled:cursor-not-allowed"
+                                  className="p-2 min-w-[44px] min-h-[44px] flex items-center justify-center bg-gray-100 hover:bg-gray-200 rounded-lg disabled:opacity-30 disabled:cursor-not-allowed"
                                   title="Descendre"
                                 >
-                                  <ChevronDown className="w-4 h-4" />
+                                  <ChevronDown className="w-5 h-5" />
                                 </button>
                                 <button
                                   onClick={() => handleDeleteMedia(media.id)}
-                                  className="p-1.5 bg-red-100 hover:bg-red-200 rounded"
+                                  className="p-2 min-w-[44px] min-h-[44px] flex items-center justify-center bg-red-100 hover:bg-red-200 rounded-lg"
                                   title="Retirer"
                                 >
-                                  <Trash2 className="w-4 h-4 text-red-700" />
+                                  <Trash2 className="w-5 h-5 text-red-700" />
                                 </button>
                               </div>
                             </div>
@@ -825,7 +825,8 @@ export const ProductManagement: React.FC = () => {
             </div>
           </div>
         </div>
-      )}
-    </div>
+      )
+      }
+    </div >
   );
 };

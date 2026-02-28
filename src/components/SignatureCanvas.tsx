@@ -9,11 +9,11 @@ interface SignatureCanvasProps {
   existingSignature?: string;
 }
 
-export const SignatureCanvasComponent: React.FC<SignatureCanvasProps> = ({ 
-  title, 
-  onSave, 
+export const SignatureCanvasComponent: React.FC<SignatureCanvasProps> = ({
+  title,
+  onSave,
   onClose,
-  existingSignature 
+  existingSignature
 }) => {
   const sigCanvasRef = useRef<SignatureCanvas>(null);
 
@@ -43,7 +43,7 @@ export const SignatureCanvasComponent: React.FC<SignatureCanvasProps> = ({
           </h3>
           <button
             onClick={onClose}
-            className="p-1 hover:bg-gray-100 rounded"
+            className="p-2 min-w-[44px] min-h-[44px] flex items-center justify-center hover:bg-gray-100 rounded-lg"
           >
             <X className="w-5 h-5" />
           </button>
@@ -54,7 +54,7 @@ export const SignatureCanvasComponent: React.FC<SignatureCanvasProps> = ({
             <p className="text-center text-gray-600 mb-4">
               Signez dans la zone ci-dessous avec votre doigt ou un stylet
             </p>
-            
+
             <div className="border border-gray-200 rounded-lg bg-gray-50">
               <SignatureCanvas
                 ref={sigCanvasRef}
@@ -69,27 +69,27 @@ export const SignatureCanvasComponent: React.FC<SignatureCanvasProps> = ({
             </div>
           </div>
 
-          <div className="flex items-center justify-between">
+          <div className="flex flex-col sm:flex-row items-stretch sm:items-center justify-between gap-3">
             <button
               onClick={clearSignature}
-              className="flex items-center gap-2 px-4 py-2 text-gray-600 hover:text-gray-800 hover:bg-gray-100 rounded-lg transition-colors"
+              className="flex items-center justify-center gap-2 px-4 py-2 min-h-[44px] text-gray-600 hover:text-gray-800 hover:bg-gray-100 rounded-lg transition-colors"
             >
-              <RotateCcw className="w-4 h-4" />
+              <RotateCcw className="w-5 h-5" />
               Effacer
             </button>
 
-            <div className="flex gap-2">
+            <div className="flex flex-col sm:flex-row gap-2">
               <button
                 onClick={onClose}
-                className="px-4 py-2 text-gray-600 hover:bg-gray-100 rounded-lg transition-colors"
+                className="px-4 py-2 min-h-[44px] text-gray-600 hover:bg-gray-100 rounded-lg transition-colors"
               >
                 Annuler
               </button>
               <button
                 onClick={saveSignature}
-                className="flex items-center gap-2 px-4 py-2 bg-[#E72C63] text-white rounded-lg hover:bg-[#d12656] transition-colors"
+                className="flex items-center justify-center gap-2 px-4 py-2 min-h-[44px] bg-[#E72C63] text-white rounded-lg hover:bg-[#d12656] transition-colors"
               >
-                <Check className="w-4 h-4" />
+                <Check className="w-5 h-5" />
                 Valider
               </button>
             </div>
