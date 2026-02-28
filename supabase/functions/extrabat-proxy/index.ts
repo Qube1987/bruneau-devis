@@ -41,9 +41,9 @@ Deno.serve(async (req) => {
   try {
     // Get Extrabat credentials from Supabase secrets
     const apiKey = Deno.env.get('EXTRABAT_API_KEY') || 'MjMxYjcwNGEtYjhiNy00YWFmLTk3ZmEtY2VjZTdmNTA5ZjQwOjQ2NTE2OjYyNzE3'
-    const securityKey = Deno.env.get('EXTRABAT_SECURITY') || 'b8778cb3e72e1d8c94ed6a96d476a72ae09c1b5ba9d9f449d7e2e7a163a51b3c'
+    const securityKey = Deno.env.get('EXTRABAT_SECURITY_KEY') || Deno.env.get('EXTRABAT_SECURITY') || 'b8778cb3e72e1d8c94ed6a96d476a72ae09c1b5ba9d9f449d7e2e7a163a51b3c'
 
-    console.log('Using Extrabat credentials:', { 
+    console.log('Using Extrabat credentials:', {
       apiKey: apiKey ? 'SET' : 'NOT SET',
       securityKey: securityKey ? 'SET' : 'NOT SET'
     })
@@ -55,9 +55,11 @@ Deno.serve(async (req) => {
     if (requestBody.endpoint) {
       // Client search or other API calls
       const { endpoint, params } = requestBody
-      
-      let apiUrl = `https://api.extrabat.com/v2/${endpoint}`
-      
+
+      // Ensure endpoint starts with a slash but avoid double slashes
+      const cleanEndpoint = endpoint.startsWith('/') ? endpoint : `/${endpoint}`
+      let apiUrl = `https://api.extrabat.com/v2${cleanEndpoint}`
+
       if (params) {
         const searchParams = new URLSearchParams()
         Object.entries(params).forEach(([key, value]) => {
@@ -92,14 +94,14 @@ Deno.serve(async (req) => {
       if (!response.ok) {
         console.error('Extrabat API error:', response.status, responseData)
         return new Response(
-          JSON.stringify({ 
-            success: false, 
+          JSON.stringify({
+            success: false,
             error: `Extrabat API error: ${response.status} - ${responseText}`,
             status: response.status
           }),
-          { 
+          {
             status: response.status,
-            headers: { ...corsHeaders, 'Content-Type': 'application/json' } 
+            headers: { ...corsHeaders, 'Content-Type': 'application/json' }
           }
         )
       }
@@ -107,12 +109,12 @@ Deno.serve(async (req) => {
       console.log('Extrabat API success:', responseData)
 
       return new Response(
-        JSON.stringify({ 
-          success: true, 
+        JSON.stringify({
+          success: true,
           data: responseData
         }),
-        { 
-          headers: { ...corsHeaders, 'Content-Type': 'application/json' } 
+        {
+          headers: { ...corsHeaders, 'Content-Type': 'application/json' }
         }
       )
     }
@@ -122,20 +124,20 @@ Deno.serve(async (req) => {
 
     if (!technicianCode || !interventionData) {
       return new Response(
-        JSON.stringify({ 
-          success: false, 
-          error: 'Missing required fields: technicianCode and interventionData' 
+        JSON.stringify({
+          success: false,
+          error: 'Missing required fields: technicianCode and interventionData'
         }),
-        { 
+        {
           status: 400,
-          headers: { ...corsHeaders, 'Content-Type': 'application/json' } 
+          headers: { ...corsHeaders, 'Content-Type': 'application/json' }
         }
       )
     }
 
     // Parse the intervention date
     const startDate = new Date(interventionData.startedAt)
-    const endDate = interventionData.endedAt 
+    const endDate = interventionData.endedAt
       ? new Date(interventionData.endedAt)
       : new Date(startDate.getTime() + 2 * 60 * 60 * 1000) // +2 hours by default
 
@@ -147,7 +149,7 @@ Deno.serve(async (req) => {
       const hours = String(date.getHours()).padStart(2, '0')
       const minutes = String(date.getMinutes()).padStart(2, '0')
       const seconds = String(date.getSeconds()).padStart(2, '0')
-      
+
       return `${year}-${month}-${day} ${hours}:${minutes}:${seconds}`
     }
 
@@ -199,14 +201,14 @@ Deno.serve(async (req) => {
     if (!response.ok) {
       console.error('Extrabat API error:', response.status, responseData)
       return new Response(
-        JSON.stringify({ 
-          success: false, 
+        JSON.stringify({
+          success: false,
           error: `Extrabat API error: ${response.status} - ${responseText}`,
           status: response.status
         }),
-        { 
+        {
           status: response.status,
-          headers: { ...corsHeaders, 'Content-Type': 'application/json' } 
+          headers: { ...corsHeaders, 'Content-Type': 'application/json' }
         }
       )
     }
@@ -214,27 +216,27 @@ Deno.serve(async (req) => {
     console.log('Extrabat API success:', responseData)
 
     return new Response(
-      JSON.stringify({ 
-        success: true, 
+      JSON.stringify({
+        success: true,
         data: responseData,
         message: 'Appointment created successfully in Extrabat'
       }),
-      { 
-        headers: { ...corsHeaders, 'Content-Type': 'application/json' } 
+      {
+        headers: { ...corsHeaders, 'Content-Type': 'application/json' }
       }
     )
 
   } catch (error) {
     console.error('Extrabat proxy error:', error)
-    
+
     return new Response(
-      JSON.stringify({ 
-        success: false, 
-        error: error instanceof Error ? error.message : 'Unknown error' 
+      JSON.stringify({
+        success: false,
+        error: error instanceof Error ? error.message : 'Unknown error'
       }),
-      { 
+      {
         status: 500,
-        headers: { ...corsHeaders, 'Content-Type': 'application/json' } 
+        headers: { ...corsHeaders, 'Content-Type': 'application/json' }
       }
     )
   }

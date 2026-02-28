@@ -10,17 +10,17 @@ export const useExtrabat = () => {
   const searchClients = async (query: string): Promise<ExtrabatResponse> => {
     try {
       console.log('Searching Extrabat clients for:', query);
-      
+
       const { data, error } = await supabase.functions.invoke('extrabat-proxy', {
         body: {
-          endpoint: 'clients',
+          endpoint: '/clients',
           params: {
-            q: query,
+            search: query,
             include: 'telephone,adresse,ouvrage'
           }
         }
       });
-      
+
       if (error) {
         console.error('Supabase function error:', error);
         return { success: false, error: error.message };
@@ -36,9 +36,9 @@ export const useExtrabat = () => {
 
     } catch (error) {
       console.error('Extrabat client search failed:', error);
-      return { 
-        success: false, 
-        error: error instanceof Error ? error.message : 'Unknown error' 
+      return {
+        success: false,
+        error: error instanceof Error ? error.message : 'Unknown error'
       };
     }
   };
@@ -56,7 +56,7 @@ export const useExtrabat = () => {
   ): Promise<ExtrabatResponse> => {
     try {
       console.log('Creating Extrabat appointment for technician:', technicianCode);
-      
+
       const { data, error } = await supabase.functions.invoke('extrabat-proxy', {
         body: {
           technicianCode,
@@ -64,10 +64,10 @@ export const useExtrabat = () => {
           clientId
         }
       });
-      
+
       if (error) {
         console.error('Supabase function error:', error);
-        
+
         if (error.message && error.message.includes('credentials not configured')) {
           console.error('🔑 CONFIGURATION REQUIRED:');
           console.error('1. Go to your Supabase dashboard');
@@ -77,7 +77,7 @@ export const useExtrabat = () => {
           console.error('   - EXTRABAT_SECURITY = your Extrabat security key');
           console.error('4. The secrets will be automatically available to the edge function');
         }
-        
+
         return { success: false, error: error.message };
       }
 
@@ -91,9 +91,9 @@ export const useExtrabat = () => {
 
     } catch (error) {
       console.error('Extrabat appointment creation failed:', error);
-      return { 
-        success: false, 
-        error: error instanceof Error ? error.message : 'Unknown error' 
+      return {
+        success: false,
+        error: error instanceof Error ? error.message : 'Unknown error'
       };
     }
   };

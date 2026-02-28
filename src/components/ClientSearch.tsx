@@ -76,9 +76,9 @@ export const ClientSearch: React.FC<ClientSearchProps> = ({ onClientSelect }) =>
     try {
       const { data, error } = await supabase.functions.invoke('extrabat-proxy', {
         body: {
-          endpoint: 'clients',
+          endpoint: '/clients',
           params: {
-            q: query,
+            search: query,
             include: 'telephone,adresse,ouvrage'
           }
         }
@@ -127,7 +127,7 @@ export const ClientSearch: React.FC<ClientSearchProps> = ({ onClientSelect }) =>
   const handleClientSelect = (client: ExtrabatClient) => {
     setSelectedClient(client);
     setShowDetails(true);
-    
+
     // Auto-select first available options
     if (client.telephones && client.telephones.length > 0) {
       setSelectedPhone(client.telephones[0].number);
