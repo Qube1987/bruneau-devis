@@ -13,7 +13,7 @@ export const useAuth = () => {
     const getUserType = async (userId: string, userEmail?: string): Promise<'internal' | 'external'> => {
       try {
         const controller = new AbortController();
-        const timeoutId = setTimeout(() => controller.abort(), 5000);
+        const timeoutId = setTimeout(() => controller.abort(), 10000);
 
         const { data, error } = await supabase
           .from('profiles')
@@ -86,7 +86,7 @@ export const useAuth = () => {
         console.error('Auth initialization timeout - forcing completion');
         setLoading(false);
       }
-    }, 10000);
+    }, 20000);
 
     initAuth();
 
