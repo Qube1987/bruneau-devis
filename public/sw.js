@@ -72,8 +72,8 @@ self.addEventListener('push', (event) => {
     const title = data.title || 'Bruneau Devis';
     const options = {
         body: data.body || 'Vous avez une nouvelle notification',
-        icon: '/dev-icon-512x512.png',
-        badge: '/dev-icon-512x512.png',
+        icon: '/devis-android-chrome-512x512.png',
+        badge: '/devis-android-chrome-512x512.png',
         vibrate: [200, 100, 200],
         tag: data.tag || 'devis-notification',
         renotify: true,

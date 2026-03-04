@@ -4,18 +4,18 @@
     "description": "Application de création et gestion de devis - Bruneau Protection",
     "start_url": "/",
     "display": "standalone",
-    "background_color": "#E74C3C",
-    "theme_color": "#E74C3C",
+    "background_color": "#29235C",
+    "theme_color": "#29235C",
     "orientation": "portrait-primary",
     "icons": [
         {
-            "src": "/dev-icon-512x512.png",
+            "src": "/devis-android-chrome-512x512.png",
             "sizes": "512x512",
             "type": "image/png",
             "purpose": "any maskable"
         },
         {
-            "src": "/dev-icon-512x512.png",
+            "src": "/devis-android-chrome-512x512.png",
             "sizes": "192x192",
             "type": "image/png",
             "purpose": "any"

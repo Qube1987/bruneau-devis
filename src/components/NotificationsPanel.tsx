@@ -1,8 +1,8 @@
 import { useState, useEffect } from 'react';
-import { Bell, Check, X, Calendar, Euro, BellRing, BellOff, Eye } from 'lucide-react';
+import { Bell, Check, X, Calendar, Euro, BellRing } from 'lucide-react';
 import { supabase } from '../lib/supabase';
 import { format } from 'date-fns';
-import { usePushNotifications } from '../hooks/usePushNotifications';
+import { PushSettings } from './PushSettings';
 
 interface Notification {
   id: string;
@@ -128,7 +128,7 @@ export default function NotificationsPanel() {
     }
   };
 
-  const { isSubscribed, isSupported, subscribe, unsubscribe, loading: pushLoading } = usePushNotifications();
+  const [showPushSettings, setShowPushSettings] = useState(false);
 
   const unreadCount = notifications.filter(n => !n.read).length;
 
@@ -142,6 +142,7 @@ export default function NotificationsPanel() {
 
   return (
     <div className="max-w-4xl mx-auto">
+      {showPushSettings && <PushSettings onClose={() => setShowPushSettings(false)} />}
       <div className="bg-white rounded-lg shadow-sm">
         <div className="border-b border-gray-200 px-6 py-4">
           <div className="flex items-center justify-between">
@@ -155,23 +156,14 @@ export default function NotificationsPanel() {
               )}
             </div>
             <div className="flex items-center gap-3">
-              {isSupported && (
-                <button
-                  onClick={() => isSubscribed ? unsubscribe() : subscribe()}
-                  disabled={pushLoading}
-                  className={`flex items-center gap-2 px-4 py-2 rounded-lg transition-colors text-sm ${isSubscribed
-                      ? 'bg-green-100 text-green-700 hover:bg-green-200'
-                      : 'bg-orange-100 text-orange-700 hover:bg-orange-200'
-                    } ${pushLoading ? 'opacity-50 cursor-not-allowed' : ''}`}
-                  title={isSubscribed ? 'Désactiver les notifications push' : 'Activer les notifications push'}
-                >
-                  {isSubscribed ? (
-                    <><BellRing className="w-4 h-4" /> Push actif</>
-                  ) : (
-                    <><BellOff className="w-4 h-4" /> Activer push</>
-                  )}
-                </button>
-              )}
+              <button
+                onClick={() => setShowPushSettings(true)}
+                className="flex items-center gap-2 px-4 py-2 rounded-lg transition-colors text-sm bg-[#29235C]/10 text-[#29235C] hover:bg-[#29235C]/20"
+                title="Paramètres des notifications push"
+              >
+                <BellRing className="w-4 h-4" />
+                Push
+              </button>
               <div className="flex gap-2">
                 <button
                   onClick={() => setFilter('all')}
