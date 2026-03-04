@@ -1,7 +1,8 @@
-import React, { useState, useEffect } from 'react';
-import { FileText, LogOut, Users, Package, Image, Bell, Menu, X } from 'lucide-react';
+import React, { useState, useEffect, useRef } from 'react';
+import { FileText, LogOut, Users, Package, Image, Bell, Menu, X, User, ChevronDown } from 'lucide-react';
 import { useAuth } from '../hooks/useAuth';
 import { supabase } from '../lib/supabase';
+import { PushSettings } from './PushSettings';
 
 interface NavigationProps {
   currentView: string;
@@ -9,9 +10,12 @@ interface NavigationProps {
 }
 
 export const Navigation: React.FC<NavigationProps> = ({ currentView, onViewChange }) => {
-  const { signOut, userType } = useAuth();
+  const { signOut, userType, user } = useAuth();
   const [unreadCount, setUnreadCount] = useState(0);
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
+  const [isDropdownOpen, setIsDropdownOpen] = useState(false);
+  const [showPushSettings, setShowPushSettings] = useState(false);
+  const dropdownRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
     loadUnreadCount();
@@ -34,6 +38,17 @@ export const Navigation: React.FC<NavigationProps> = ({ currentView, onViewChang
     return () => {
       channel.unsubscribe();
     };
+  }, []);
+
+  useEffect(() => {
+    const handleClickOutside = (event: MouseEvent) => {
+      if (dropdownRef.current && !dropdownRef.current.contains(event.target as Node)) {
+        setIsDropdownOpen(false);
+      }
+    };
+
+    document.addEventListener('mousedown', handleClickOutside);
+    return () => document.removeEventListener('mousedown', handleClickOutside);
   }, []);
 
   const loadUnreadCount = async () => {
@@ -70,63 +85,98 @@ export const Navigation: React.FC<NavigationProps> = ({ currentView, onViewChang
     : allNavItems;
 
   return (
-    <nav className="bg-[#29235C] text-white p-4">
-      <div className="flex items-center justify-between">
-        <div className="flex items-center gap-6">
-          <div className="flex items-center gap-3">
-            <img
-              src="/bruneau_protection_logo_quadri_reserve.png"
-              alt="Bruneau Protection"
-              className="h-8 w-auto"
-            />
+    <header className="bg-white shadow-sm border-b border-gray-200 sticky top-0 z-40">
+      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+        <div className="flex items-center justify-between h-16">
+          <div className="flex items-center gap-4 flex-1">
+            <div className="flex items-center gap-2 flex-shrink-0">
+              <img
+                src="/bruneau_protection_logo_quadri.png"
+                alt="Bruneau Protection"
+                className="h-8 w-auto"
+              />
+              <span className="text-xl font-bold text-[#29235C] hidden sm:block">
+                DEV
+              </span>
+            </div>
+
+            <div className="hidden md:flex items-center gap-1">
+              {navItems.map((item) => {
+                const Icon = item.icon;
+                return (
+                  <button
+                    key={item.id}
+                    onClick={() => onViewChange(item.id)}
+                    className={`px-3 py-2 rounded-lg transition-colors flex items-center gap-2 relative text-sm font-medium ${currentView === item.id
+                      ? 'bg-[#29235C]/10 text-[#29235C]'
+                      : 'text-gray-500 hover:text-gray-700 hover:bg-gray-100'
+                      }`}
+                  >
+                    <Icon className="w-4 h-4" />
+                    <span>{item.label}</span>
+                    {item.badge && (
+                      <span className="absolute -top-1 -right-1 bg-[#E72C63] text-white text-xs w-5 h-5 flex items-center justify-center rounded-full">
+                        {item.badge}
+                      </span>
+                    )}
+                  </button>
+                );
+              })}
+            </div>
           </div>
 
-          <div className="hidden md:flex items-center gap-1">
-            {navItems.map((item) => {
-              const Icon = item.icon;
-              return (
-                <button
-                  key={item.id}
-                  onClick={() => onViewChange(item.id)}
-                  className={`px-4 py-2 rounded-lg transition-colors flex items-center gap-2 relative ${currentView === item.id
-                      ? 'bg-[#E72C63] text-white'
-                      : 'text-gray-300 hover:text-white hover:bg-white/10'
-                    }`}
-                >
-                  <Icon className="w-4 h-4" />
-                  <span className="text-sm font-medium">{item.label}</span>
-                  {item.badge && (
-                    <span className="absolute -top-1 -right-1 bg-[#E72C63] text-white text-xs w-5 h-5 flex items-center justify-center rounded-full">
-                      {item.badge}
-                    </span>
-                  )}
-                </button>
-              );
-            })}
+          <div className="flex items-center gap-2">
+            <button
+              onClick={() => setShowPushSettings(true)}
+              className="p-2 bg-gray-100 hover:bg-gray-200 rounded-lg transition-colors"
+              title="Notifications Push"
+            >
+              <Bell className="h-5 w-5 text-gray-700" />
+            </button>
+            <div className="relative" ref={dropdownRef}>
+              <button
+                onClick={() => setIsDropdownOpen(!isDropdownOpen)}
+                className="flex items-center gap-2 p-2 bg-gray-100 hover:bg-gray-200 rounded-lg transition-colors"
+                title="Menu utilisateur"
+              >
+                <User className="h-5 w-5 text-gray-700" />
+                <ChevronDown className={`h-4 w-4 text-gray-700 transition-transform ${isDropdownOpen ? 'rotate-180' : ''}`} />
+              </button>
+
+              {isDropdownOpen && (
+                <div className="absolute right-0 mt-2 w-64 bg-white rounded-lg shadow-lg border border-gray-200 py-2 z-50">
+                  <div className="px-4 py-3 border-b border-gray-200">
+                    <p className="text-sm text-gray-900 font-medium">{user?.email}</p>
+                  </div>
+                  <button
+                    onClick={() => {
+                      handleSignOut();
+                      setIsDropdownOpen(false);
+                    }}
+                    className="w-full flex items-center gap-3 px-4 py-3 text-sm text-gray-700 hover:bg-gray-50 transition-colors"
+                  >
+                    <LogOut className="h-4 w-4" />
+                    <span>Déconnexion</span>
+                  </button>
+                </div>
+              )}
+            </div>
+
+            {/* Mobile menu button */}
+            <button
+              onClick={() => setIsMobileMenuOpen(!isMobileMenuOpen)}
+              className="md:hidden p-2 rounded-lg text-gray-600 hover:text-gray-900 hover:bg-gray-100 transition-colors"
+            >
+              {isMobileMenuOpen ? <X className="w-6 h-6" /> : <Menu className="w-6 h-6" />}
+            </button>
           </div>
         </div>
-
-        <button
-          onClick={handleSignOut}
-          className="hidden md:flex items-center gap-2 px-4 py-2 rounded-lg text-gray-300 hover:text-white hover:bg-white/10 transition-colors"
-        >
-          <LogOut className="w-4 h-4" />
-          <span className="text-sm">Déconnexion</span>
-        </button>
-
-        {/* Mobile menu button */}
-        <button
-          onClick={() => setIsMobileMenuOpen(!isMobileMenuOpen)}
-          className="md:hidden p-2 rounded-lg text-gray-300 hover:text-white hover:bg-white/10 transition-colors"
-        >
-          {isMobileMenuOpen ? <X className="w-6 h-6" /> : <Menu className="w-6 h-6" />}
-        </button>
       </div>
 
       {/* Mobile navigation overlay */}
       {isMobileMenuOpen && (
-        <div className="md:hidden fixed inset-0 top-[72px] bg-[#29235C] z-50 flex flex-col p-4 overflow-y-auto">
-          <div className="flex flex-col gap-2 flex-1">
+        <div className="md:hidden border-t border-gray-200 bg-white relative z-50 overflow-hidden">
+          <div className="px-4 py-2 space-y-1">
             {navItems.map((item) => {
               const Icon = item.icon;
               return (
@@ -136,9 +186,9 @@ export const Navigation: React.FC<NavigationProps> = ({ currentView, onViewChang
                     onViewChange(item.id);
                     setIsMobileMenuOpen(false);
                   }}
-                  className={`px-4 py-3 min-h-[48px] rounded-lg transition-colors flex items-center gap-3 relative ${currentView === item.id
-                      ? 'bg-[#E72C63] text-white'
-                      : 'text-gray-300 hover:text-white hover:bg-white/10'
+                  className={`w-full px-3 py-3 min-h-[48px] rounded-lg transition-colors flex items-center gap-3 relative ${currentView === item.id
+                    ? 'bg-[#29235C]/10 text-[#29235C]'
+                    : 'text-gray-600 hover:text-gray-900 hover:bg-gray-100'
                     }`}
                 >
                   <Icon className="w-5 h-5 flex-shrink-0" />
@@ -152,18 +202,10 @@ export const Navigation: React.FC<NavigationProps> = ({ currentView, onViewChang
               );
             })}
           </div>
-          <button
-            onClick={() => {
-              handleSignOut();
-              setIsMobileMenuOpen(false);
-            }}
-            className="flex items-center gap-3 px-4 py-3 min-h-[48px] mt-4 rounded-lg text-gray-300 hover:text-white hover:bg-white/10 transition-colors border-t border-white/10"
-          >
-            <LogOut className="w-5 h-5 flex-shrink-0" />
-            <span className="text-base font-medium">Déconnexion</span>
-          </button>
         </div>
       )}
-    </nav>
+
+      {showPushSettings && <PushSettings onClose={() => setShowPushSettings(false)} />}
+    </header>
   );
 };
