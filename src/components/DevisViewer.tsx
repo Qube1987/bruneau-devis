@@ -50,6 +50,53 @@ export const DevisViewer: React.FC<DevisViewerProps> = ({ token }) => {
     }
   };
 
+  const sendViewNotification = async (devisData: any) => {
+    try {
+      // Check if already viewed in this session to avoid spam
+      const viewedKey = `devis_viewed_${token}`;
+      if (sessionStorage.getItem(viewedKey)) return;
+      sessionStorage.setItem(viewedKey, 'true');
+
+      // Save notification in database
+      const clientName = `${devisData.client?.prenom || ''} ${devisData.client?.nom || ''}`.trim();
+      await supabase
+        .from('notifications')
+        .insert([{
+          type: 'devis_viewed',
+          devis_id: devisData.id,
+          title: `Devis consulté - ${clientName}`,
+          message: `${clientName} a ouvert le devis "${devisData.titre_affaire}"${devisData.devis_number ? ` (${devisData.devis_number})` : ''}`,
+          metadata: {
+            client: devisData.client,
+            titre_affaire: devisData.titre_affaire,
+            devis_number: devisData.devis_number,
+            viewed_at: new Date().toISOString()
+          },
+          read: false
+        }]);
+
+      // Send push notification
+      const supabaseUrl = import.meta.env.VITE_SUPABASE_URL;
+      const supabaseAnonKey = import.meta.env.VITE_SUPABASE_ANON_KEY;
+      fetch(`${supabaseUrl}/functions/v1/send-devis-push`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${supabaseAnonKey}`,
+        },
+        body: JSON.stringify({
+          event: 'devis_viewed',
+          title: '👁️ Devis consulté',
+          body: `${clientName} consulte le devis "${devisData.titre_affaire}"${devisData.devis_number ? ` (${devisData.devis_number})` : ''}`,
+          tag: `devis-viewed-${devisData.id}`,
+          url: '/'
+        })
+      }).catch(err => console.error('Push notification error:', err));
+    } catch (err) {
+      console.error('Error sending view notification:', err);
+    }
+  };
+
   const loadDevis = async () => {
     try {
       console.log('Loading devis with token:', token);
@@ -70,37 +117,45 @@ export const DevisViewer: React.FC<DevisViewerProps> = ({ token }) => {
         return;
       }
 
+      // Notify that the devis is being viewed
+      sendViewNotification(data);
+
       const lignesWithProducts = await Promise.all(
         (data.lignes || []).map(async (line: any) => {
           if (line.product_id) {
-            const { data: product } = await supabase
-              .from('products')
-              .select('*')
-              .eq('id', line.product_id)
-              .maybeSingle();
-
-            if (product) {
-              const { data: mediaItems } = await supabase
-                .from('product_media')
+            try {
+              const { data: product } = await supabase
+                .from('products')
                 .select('*')
-                .eq('product_id', product.id)
-                .order('display_order', { ascending: true });
+                .eq('id', line.product_id)
+                .maybeSingle();
+
+              if (product) {
+                const { data: mediaItems } = await supabase
+                  .from('product_media')
+                  .select('*')
+                  .eq('product_id', product.id)
+                  .order('display_order', { ascending: true });
+
+                return {
+                  ...line,
+                  ref_extrabat: product.ref_extrabat || null,
+                  product: {
+                    ...product,
+                    media_items: mediaItems || []
+                  }
+                };
+              }
 
               return {
                 ...line,
-                ref_extrabat: product.ref_extrabat || null,
-                product: {
-                  ...product,
-                  media_items: mediaItems || []
-                }
+                ref_extrabat: null,
+                product: undefined
               };
+            } catch (productErr) {
+              console.error('Error loading product for line:', line.product_id, productErr);
+              return line;
             }
-
-            return {
-              ...line,
-              ref_extrabat: product?.ref_extrabat || null,
-              product: product || undefined
-            };
           }
           return line;
         })
@@ -110,6 +165,7 @@ export const DevisViewer: React.FC<DevisViewerProps> = ({ token }) => {
         id: data.id,
         client: data.client,
         titre_affaire: data.titre_affaire,
+        devis_type: data.devis_type,
         taux_tva: data.taux_tva || 20,
         lignes: lignesWithProducts,
         totaux: data.totaux,
@@ -133,7 +189,7 @@ export const DevisViewer: React.FC<DevisViewerProps> = ({ token }) => {
       setCustomQuantities(data.custom_quantities || {});
     } catch (err) {
       console.error('Error loading devis:', err);
-      setError('Erreur lors du chargement du devis');
+      setError('Erreur lors du chargement du devis. Veuillez réessayer en actualisant la page.');
     } finally {
       setLoading(false);
     }
@@ -363,6 +419,28 @@ export const DevisViewer: React.FC<DevisViewerProps> = ({ token }) => {
         console.error('Error saving notification:', notificationError);
       } else {
         console.log('Notification saved successfully');
+      }
+
+      // Send push notification for acceptance
+      try {
+        const supabaseUrlPush = import.meta.env.VITE_SUPABASE_URL;
+        const supabaseAnonKeyPush = import.meta.env.VITE_SUPABASE_ANON_KEY;
+        fetch(`${supabaseUrlPush}/functions/v1/send-devis-push`, {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+            'Authorization': `Bearer ${supabaseAnonKeyPush}`,
+          },
+          body: JSON.stringify({
+            event: 'devis_accepted',
+            title: '✅ Devis accepté !',
+            body: `${devis.client.prenom} ${devis.client.nom} a accepté le devis "${devis.titre_affaire}"${devis.devis_number ? ` (${devis.devis_number})` : ''} - ${(totals?.ttc || devis.totaux.ttc).toFixed(2)} € TTC`,
+            tag: `devis-accepted-${devis.id}`,
+            url: '/'
+          })
+        }).catch(err => console.error('Push notification error:', err));
+      } catch (pushErr) {
+        console.error('Error sending acceptance push:', pushErr);
       }
 
       const supabaseUrl = import.meta.env.VITE_SUPABASE_URL;
@@ -646,8 +724,8 @@ export const DevisViewer: React.FC<DevisViewerProps> = ({ token }) => {
               ? line.product.media_items && line.product.media_items.length > 0
                 ? getPublicImageUrl(STORAGE_BUCKETS.PRODUCTS, line.product.media_items[0].thumbnail_path || line.product.media_items[0].file_path)
                 : line.product.photo_square_path
-                ? getPublicImageUrl(STORAGE_BUCKETS.PRODUCTS, line.product.photo_square_path)
-                : null
+                  ? getPublicImageUrl(STORAGE_BUCKETS.PRODUCTS, line.product.photo_square_path)
+                  : null
               : null;
 
             return (
@@ -789,8 +867,8 @@ export const DevisViewer: React.FC<DevisViewerProps> = ({ token }) => {
                         const productImageUrl = product.media_items && product.media_items.length > 0
                           ? getPublicImageUrl(STORAGE_BUCKETS.PRODUCTS, product.media_items[0].thumbnail_path || product.media_items[0].file_path)
                           : product.photo_square_path
-                          ? getPublicImageUrl(STORAGE_BUCKETS.PRODUCTS, product.photo_square_path)
-                          : null;
+                            ? getPublicImageUrl(STORAGE_BUCKETS.PRODUCTS, product.photo_square_path)
+                            : null;
 
                         return (
                           <div key={product.id} className="flex items-center gap-3 p-3 bg-gray-50 rounded-lg">
@@ -995,9 +1073,8 @@ export const DevisViewer: React.FC<DevisViewerProps> = ({ token }) => {
             onClick={isFullscreen ? undefined : handleCloseProductModal}
           >
             <div
-              className={`bg-white rounded-lg w-full ${
-                isFullscreen ? 'h-full' : 'max-w-4xl max-h-[90vh]'
-              } overflow-y-auto`}
+              className={`bg-white rounded-lg w-full ${isFullscreen ? 'h-full' : 'max-w-4xl max-h-[90vh]'
+                } overflow-y-auto`}
               onClick={(e) => e.stopPropagation()}
             >
               <div className="sticky top-0 bg-white border-b z-10 px-4 py-3 flex items-center justify-between">
@@ -1079,11 +1156,10 @@ export const DevisViewer: React.FC<DevisViewerProps> = ({ token }) => {
                         <button
                           key={index}
                           onClick={() => setCurrentMediaIndex(index)}
-                          className={`flex-shrink-0 w-20 h-20 rounded overflow-hidden border-2 transition-all ${
-                            index === currentMediaIndex
+                          className={`flex-shrink-0 w-20 h-20 rounded overflow-hidden border-2 transition-all ${index === currentMediaIndex
                               ? 'border-[#E72C63] scale-105'
                               : 'border-transparent opacity-60 hover:opacity-100'
-                          }`}
+                            }`}
                         >
                           {item.type === 'image' ? (
                             <img

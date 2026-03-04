@@ -1,7 +1,8 @@
 import { useState, useEffect } from 'react';
-import { Bell, Check, X, Calendar, Euro } from 'lucide-react';
+import { Bell, Check, X, Calendar, Euro, BellRing, BellOff, Eye } from 'lucide-react';
 import { supabase } from '../lib/supabase';
 import { format } from 'date-fns';
+import { usePushNotifications } from '../hooks/usePushNotifications';
 
 interface Notification {
   id: string;
@@ -127,6 +128,8 @@ export default function NotificationsPanel() {
     }
   };
 
+  const { isSubscribed, isSupported, subscribe, unsubscribe, loading: pushLoading } = usePushNotifications();
+
   const unreadCount = notifications.filter(n => !n.read).length;
 
   if (loading) {
@@ -152,24 +155,39 @@ export default function NotificationsPanel() {
               )}
             </div>
             <div className="flex items-center gap-3">
+              {isSupported && (
+                <button
+                  onClick={() => isSubscribed ? unsubscribe() : subscribe()}
+                  disabled={pushLoading}
+                  className={`flex items-center gap-2 px-4 py-2 rounded-lg transition-colors text-sm ${isSubscribed
+                      ? 'bg-green-100 text-green-700 hover:bg-green-200'
+                      : 'bg-orange-100 text-orange-700 hover:bg-orange-200'
+                    } ${pushLoading ? 'opacity-50 cursor-not-allowed' : ''}`}
+                  title={isSubscribed ? 'Désactiver les notifications push' : 'Activer les notifications push'}
+                >
+                  {isSubscribed ? (
+                    <><BellRing className="w-4 h-4" /> Push actif</>
+                  ) : (
+                    <><BellOff className="w-4 h-4" /> Activer push</>
+                  )}
+                </button>
+              )}
               <div className="flex gap-2">
                 <button
                   onClick={() => setFilter('all')}
-                  className={`px-4 py-2 rounded-lg transition-colors ${
-                    filter === 'all'
-                      ? 'bg-[#29235C] text-white'
-                      : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
-                  }`}
+                  className={`px-4 py-2 rounded-lg transition-colors ${filter === 'all'
+                    ? 'bg-[#29235C] text-white'
+                    : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
+                    }`}
                 >
                   Toutes
                 </button>
                 <button
                   onClick={() => setFilter('unread')}
-                  className={`px-4 py-2 rounded-lg transition-colors ${
-                    filter === 'unread'
-                      ? 'bg-[#29235C] text-white'
-                      : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
-                  }`}
+                  className={`px-4 py-2 rounded-lg transition-colors ${filter === 'unread'
+                    ? 'bg-[#29235C] text-white'
+                    : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
+                    }`}
                 >
                   Non lues
                 </button>
@@ -196,20 +214,17 @@ export default function NotificationsPanel() {
             notifications.map((notification) => (
               <div
                 key={notification.id}
-                className={`px-6 py-4 transition-colors ${
-                  !notification.read ? 'bg-blue-50' : 'bg-white hover:bg-gray-50'
-                }`}
+                className={`px-6 py-4 transition-colors ${!notification.read ? 'bg-blue-50' : 'bg-white hover:bg-gray-50'
+                  }`}
               >
                 <div className="flex items-start justify-between gap-4">
                   <div className="flex-1 min-w-0">
                     <div className="flex items-start gap-3">
-                      <div className={`mt-1 w-2 h-2 rounded-full flex-shrink-0 ${
-                        !notification.read ? 'bg-[#E72C63]' : 'bg-gray-300'
-                      }`} />
+                      <div className={`mt-1 w-2 h-2 rounded-full flex-shrink-0 ${!notification.read ? 'bg-[#E72C63]' : 'bg-gray-300'
+                        }`} />
                       <div className="flex-1 min-w-0">
-                        <h3 className={`font-semibold mb-1 ${
-                          !notification.read ? 'text-gray-900' : 'text-gray-700'
-                        }`}>
+                        <h3 className={`font-semibold mb-1 ${!notification.read ? 'text-gray-900' : 'text-gray-700'
+                          }`}>
                           {notification.title}
                         </h3>
                         <p className="text-gray-600 text-sm mb-3">

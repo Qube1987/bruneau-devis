@@ -65,5 +65,17 @@ import('./App.tsx')
         <App />
       </StrictMode>
     );
+
+    // Register service worker for PWA + Push
+    if ('serviceWorker' in navigator) {
+      navigator.serviceWorker
+        .register('/sw.js', { scope: '/' })
+        .then((registration) => {
+          console.log('[SW] Service Worker registered with scope:', registration.scope);
+        })
+        .catch((error) => {
+          console.error('[SW] Service Worker registration failed:', error);
+        });
+    }
   })
   .catch(renderErrorScreen);
