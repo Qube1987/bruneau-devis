@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { User, FileText, Calculator, Image as ImageIcon, Save, Send, Trash2, Plus, Minus, CheckCircle, AlertCircle, Sparkles, RefreshCw, Edit3 } from 'lucide-react';
+import { User, FileText, Calculator, Image as ImageIcon, Save, Send, Trash2, Plus, Minus, CheckCircle, AlertCircle, Sparkles, RefreshCw, Edit3, ChevronUp, ChevronDown, FilePlus2 } from 'lucide-react';
 import { ProductCatalog } from './ProductCatalog';
 import { DrawingCanvas } from './DrawingCanvas';
 import { ClientSearch } from './ClientSearch';
@@ -278,6 +278,56 @@ export const DevisForm: React.FC<DevisFormProps> = ({ initialDevis, onBack }) =>
       ...prev,
       lignes: prev.lignes.filter(line => line.id !== lineId)
     }));
+  };
+
+  const moveLineUp = (index: number) => {
+    if (index === 0) return;
+    setDevis(prev => {
+      const newLignes = [...prev.lignes];
+      [newLignes[index - 1], newLignes[index]] = [newLignes[index], newLignes[index - 1]];
+      return { ...prev, lignes: newLignes };
+    });
+  };
+
+  const moveLineDown = (index: number) => {
+    setDevis(prev => {
+      if (index >= prev.lignes.length - 1) return prev;
+      const newLignes = [...prev.lignes];
+      [newLignes[index], newLignes[index + 1]] = [newLignes[index + 1], newLignes[index]];
+      return { ...prev, lignes: newLignes };
+    });
+  };
+
+  const handleNewDevis = () => {
+    if (devis.lignes.length > 0 || devis.client.nom) {
+      if (!confirm('Êtes-vous sûr de vouloir créer un nouveau devis ? Toutes les données non sauvegardées seront perdues.')) {
+        return;
+      }
+    }
+    setDevis({
+      client: {
+        nom: '',
+        prenom: '',
+        email: '',
+        telephone: '',
+        adresse: ''
+      },
+      titre_affaire: 'Protection intrusion domicile',
+      devis_type: 'installation_neuve',
+      taux_tva: 10,
+      lignes: [],
+      totaux: { ht: 0, tva: {}, ttc: 0, acompte: 0 },
+      observations: '',
+      options: { telesurveillance: false, leasing: false },
+      signatures: {},
+      status: 'draft'
+    });
+    setCroquis(null);
+    setPhotos([]);
+    setSaveMessage(null);
+    setEditingPrice(null);
+    setShowEmailModal(false);
+    setEmailData({ email: '', subject: '', message: '' });
   };
 
   const handleCroquisSave = (imageData: string) => {
@@ -619,10 +669,19 @@ export const DevisForm: React.FC<DevisFormProps> = ({ initialDevis, onBack }) =>
     <div className="max-w-4xl mx-auto p-4 space-y-6 w-full">
       <div className="bg-white rounded-lg shadow-sm border">
         <div className="p-6">
-          <h2 className="text-2xl font-bold text-[#29235C] mb-6 flex items-center gap-2">
-            <FileText className="w-6 h-6" />
-            {initialDevis ? 'Modifier le devis' : 'Nouveau devis'}
-          </h2>
+          <div className="flex items-center justify-between mb-6">
+            <h2 className="text-2xl font-bold text-[#29235C] flex items-center gap-2">
+              <FileText className="w-6 h-6" />
+              {initialDevis ? 'Modifier le devis' : 'Nouveau devis'}
+            </h2>
+            <button
+              onClick={handleNewDevis}
+              className="flex items-center gap-2 px-4 py-2 min-h-[44px] bg-[#E72C63] text-white rounded-lg hover:bg-[#d12656] transition-colors shadow-sm"
+            >
+              <FilePlus2 className="w-5 h-5" />
+              <span className="hidden sm:inline">Nouveau devis</span>
+            </button>
+          </div>
 
           {onBack && (
             <button
@@ -939,11 +998,31 @@ export const DevisForm: React.FC<DevisFormProps> = ({ initialDevis, onBack }) =>
               <h3 className="text-lg font-semibold text-[#29235C] mb-4">Articles sélectionnés</h3>
 
               <div className="space-y-3">
-                {devis.lignes.map(line => (
-                  <div key={line.id} className={`p-4 rounded-lg flex items-center justify-between ${line.quantity === 0
-                      ? 'bg-blue-50 border-2 border-blue-200'
-                      : 'bg-white'
+                {devis.lignes.map((line, index) => (
+                  <div key={line.id} className={`p-4 rounded-lg flex items-center gap-2 ${line.quantity === 0
+                    ? 'bg-blue-50 border-2 border-blue-200'
+                    : 'bg-white'
                     }`}>
+                    {/* Reorder arrows */}
+                    <div className="flex flex-col gap-1 flex-shrink-0">
+                      <button
+                        onClick={() => moveLineUp(index)}
+                        disabled={index === 0}
+                        className="p-1 min-w-[32px] min-h-[32px] flex items-center justify-center rounded bg-gray-100 hover:bg-[#29235C] hover:text-white transition-colors disabled:opacity-30 disabled:hover:bg-gray-100 disabled:hover:text-gray-400 text-gray-500"
+                        title="Monter"
+                      >
+                        <ChevronUp className="w-4 h-4" />
+                      </button>
+                      <button
+                        onClick={() => moveLineDown(index)}
+                        disabled={index === devis.lignes.length - 1}
+                        className="p-1 min-w-[32px] min-h-[32px] flex items-center justify-center rounded bg-gray-100 hover:bg-[#29235C] hover:text-white transition-colors disabled:opacity-30 disabled:hover:bg-gray-100 disabled:hover:text-gray-400 text-gray-500"
+                        title="Descendre"
+                      >
+                        <ChevronDown className="w-4 h-4" />
+                      </button>
+                    </div>
+
                     <div className="flex-1">
                       <div className="flex flex-col sm:flex-row sm:items-center gap-4">
                         <div className="flex-1">
@@ -1162,8 +1241,8 @@ export const DevisForm: React.FC<DevisFormProps> = ({ initialDevis, onBack }) =>
           <div className="flex flex-col sm:flex-row flex-wrap gap-3 justify-end mt-8">
             {saveMessage && (
               <div className={`flex items-center gap-2 px-4 py-2 rounded-lg ${saveMessage.type === 'success'
-                  ? 'bg-green-100 text-green-800'
-                  : 'bg-red-100 text-red-800'
+                ? 'bg-green-100 text-green-800'
+                : 'bg-red-100 text-red-800'
                 }`}>
                 {saveMessage.type === 'success' ? (
                   <CheckCircle className="w-4 h-4" />

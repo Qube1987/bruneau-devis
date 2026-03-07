@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { FileText, Calendar, User, Eye, Trash2, Plus, Link as LinkIcon, CheckCircle, Clock, Package } from 'lucide-react';
+import { FileText, Calendar, User, Eye, Trash2, Plus, Link as LinkIcon, CheckCircle, Clock, Package, Search, X } from 'lucide-react';
 import { useDevis } from '../hooks/useDevis';
 import { Devis } from '../types';
 import { format } from 'date-fns';
@@ -19,6 +19,18 @@ export const DevisList: React.FC<DevisListProps> = ({ onLoadDevis, onNewDevis })
   const [showStockModal, setShowStockModal] = useState(false);
   const [stockData, setStockData] = useState<any[]>([]);
   const { fetchStockForDevis, loading: stockLoading } = useStock();
+  const [searchTerm, setSearchTerm] = useState('');
+
+  const filteredDevisList = devisList.filter(devis => {
+    if (!searchTerm.trim()) return true;
+    const term = searchTerm.toLowerCase();
+    const clientName = `${devis.client.prenom} ${devis.client.nom}`.toLowerCase();
+    const devisNumber = (devis.devis_number || '').toLowerCase();
+    const titre = (devis.titre_affaire || '').toLowerCase();
+    const statusLabels: Record<string, string> = { draft: 'brouillon', sent: 'envoyé', signed: 'signé' };
+    const statusLabel = (statusLabels[devis.status] || '').toLowerCase();
+    return clientName.includes(term) || devisNumber.includes(term) || titre.includes(term) || statusLabel.includes(term);
+  });
 
   useEffect(() => {
     loadDevisList();
@@ -122,23 +134,53 @@ export const DevisList: React.FC<DevisListProps> = ({ onLoadDevis, onNewDevis })
           </div>
         </div>
 
+        {/* Search field */}
+        <div className="px-6 pt-4">
+          <div className="relative">
+            <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-5 h-5 text-gray-400" />
+            <input
+              type="text"
+              value={searchTerm}
+              onChange={(e) => setSearchTerm(e.target.value)}
+              placeholder="Rechercher un devis (nom, numéro, titre...)"
+              className="w-full pl-10 pr-10 py-3 min-h-[44px] border border-gray-300 rounded-lg focus:ring-2 focus:ring-[#29235C] focus:border-transparent text-sm"
+            />
+            {searchTerm && (
+              <button
+                onClick={() => setSearchTerm('')}
+                className="absolute right-3 top-1/2 -translate-y-1/2 p-1 text-gray-400 hover:text-gray-600 transition-colors"
+              >
+                <X className="w-4 h-4" />
+              </button>
+            )}
+          </div>
+        </div>
+
         <div className="p-6">
-          {devisList.length === 0 ? (
+          {filteredDevisList.length === 0 ? (
             <div className="text-center py-12">
               <FileText className="w-12 h-12 text-gray-400 mx-auto mb-4" />
-              <h3 className="text-lg font-medium text-gray-900 mb-2">Aucun devis trouvé</h3>
-              <p className="text-gray-600 mb-6">Commencez par créer votre premier devis</p>
-              <button
-                onClick={onNewDevis}
-                className="flex items-center gap-2 px-6 py-3 bg-[#29235C] text-white rounded-lg hover:bg-[#1f1a4d] transition-colors mx-auto"
-              >
-                <Plus className="w-4 h-4" />
-                Créer un devis
-              </button>
+              <h3 className="text-lg font-medium text-gray-900 mb-2">
+                {searchTerm ? 'Aucun résultat' : 'Aucun devis trouvé'}
+              </h3>
+              <p className="text-gray-600 mb-6">
+                {searchTerm
+                  ? `Aucun devis ne correspond à "${searchTerm}"`
+                  : 'Commencez par créer votre premier devis'}
+              </p>
+              {!searchTerm && (
+                <button
+                  onClick={onNewDevis}
+                  className="flex items-center gap-2 px-6 py-3 bg-[#29235C] text-white rounded-lg hover:bg-[#1f1a4d] transition-colors mx-auto"
+                >
+                  <Plus className="w-4 h-4" />
+                  Créer un devis
+                </button>
+              )}
             </div>
           ) : (
             <div className="space-y-4">
-              {devisList.map((devis) => (
+              {filteredDevisList.map((devis) => (
                 <div key={devis.id} className="border border-gray-200 rounded-lg p-4 hover:shadow-md transition-shadow">
                   <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
                     <div className="flex-1">
