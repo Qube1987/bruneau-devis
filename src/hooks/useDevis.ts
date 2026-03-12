@@ -79,7 +79,9 @@ export const useDevis = () => {
         total_vat: line.total_vat,
         total_ttc: line.total_ttc,
         product_id: line.product?.id,
-        ref_extrabat: line.product?.ref_extrabat || line.ref_extrabat
+        ref_extrabat: line.product?.ref_extrabat || line.ref_extrabat,
+        is_section: line.is_section || false,
+        section_title: line.section_title || undefined
       }));
 
       // Prepare data for database

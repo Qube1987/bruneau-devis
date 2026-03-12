@@ -76,7 +76,6 @@ export const Navigation: React.FC<NavigationProps> = ({ currentView, onViewChang
     { id: 'products', label: 'Produits', icon: Package, allowExternal: false },
     { id: 'media', label: 'Bibliothèque', icon: Image, allowExternal: false },
     { id: 'clients', label: 'Clients', icon: Users, allowExternal: false },
-    { id: 'notifications', label: 'Notifications', icon: Bell, badge: unreadCount > 0 ? unreadCount : undefined, allowExternal: false },
   ];
 
   // Filtrer les onglets selon le type d'utilisateur
@@ -114,11 +113,6 @@ export const Navigation: React.FC<NavigationProps> = ({ currentView, onViewChang
                   >
                     <Icon className="w-4 h-4" />
                     <span>{item.label}</span>
-                    {item.badge && (
-                      <span className="absolute -top-1 -right-1 bg-[#E72C63] text-white text-xs w-5 h-5 flex items-center justify-center rounded-full">
-                        {item.badge}
-                      </span>
-                    )}
                   </button>
                 );
               })}
@@ -207,11 +201,6 @@ export const Navigation: React.FC<NavigationProps> = ({ currentView, onViewChang
                 >
                   <Icon className="w-5 h-5 flex-shrink-0" />
                   <span className="text-base font-medium">{item.label}</span>
-                  {item.badge && (
-                    <span className="bg-[#E72C63] text-white text-xs px-2 py-0.5 rounded-full ml-auto">
-                      {item.badge}
-                    </span>
-                  )}
                 </button>
               );
             })}

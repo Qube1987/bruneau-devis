@@ -300,7 +300,7 @@ export const DevisViewer: React.FC<DevisViewerProps> = ({ token }) => {
     let baseHT = 0;
     let baseTVA: { [key: string]: number } = {};
 
-    devis.lignes.forEach((line) => {
+    devis.lignes.filter(l => !l.is_section).forEach((line) => {
       const quantity = customQuantities[line.id] ?? line.quantity;
       const lineHT = line.price_ht * quantity;
       const vatRate = line.vat_rate;
@@ -716,113 +716,167 @@ export const DevisViewer: React.FC<DevisViewerProps> = ({ token }) => {
 
         <div className="space-y-3 mb-6">
           <h3 className="text-lg font-semibold text-gray-900 px-1">Détail des prestations</h3>
-          {devis.lignes.map((line) => {
-            const hasDetails = line.product?.description_long || line.product?.description_short;
+          {(() => {
+            // Group lines into sections
+            interface ViewerSectionGroup {
+              title: string | undefined;
+              lines: typeof devis.lignes;
+            }
+            const groups: ViewerSectionGroup[] = [];
+            let currentGroup: ViewerSectionGroup | null = null;
 
-            // Get product image (priority: thumbnail from media_items, then full image, then photo_square_path)
-            const productImageUrl = line.product
-              ? line.product.media_items && line.product.media_items.length > 0
-                ? getPublicImageUrl(STORAGE_BUCKETS.PRODUCTS, line.product.media_items[0].thumbnail_path || line.product.media_items[0].file_path)
-                : line.product.photo_square_path
-                  ? getPublicImageUrl(STORAGE_BUCKETS.PRODUCTS, line.product.photo_square_path)
-                  : null
-              : null;
+            devis.lignes.forEach((line) => {
+              if (line.is_section) {
+                currentGroup = { title: line.section_title, lines: [] };
+                groups.push(currentGroup);
+              } else {
+                if (!currentGroup) {
+                  currentGroup = { title: undefined, lines: [] };
+                  groups.push(currentGroup);
+                }
+                currentGroup.lines.push(line);
+              }
+            });
 
-            return (
-              <div key={line.id} className="bg-white rounded-lg shadow-sm border overflow-hidden">
-                <div className="p-4 sm:p-5">
-                  <div className="flex gap-4">
-                    <div className="flex flex-col items-center flex-shrink-0">
-                      {productImageUrl && (
-                        <div className="relative group">
-                          <img
-                            src={productImageUrl}
-                            alt={line.name}
-                            className="w-32 h-32 sm:w-40 sm:h-40 object-cover rounded-lg cursor-pointer transition-all group-hover:shadow-lg"
-                            onClick={() => line.product && handleOpenProductModal(line.product, line.name)}
-                            onError={(e) => {
-                              e.currentTarget.style.display = 'none';
-                            }}
-                          />
-                          <div className="absolute inset-0 bg-black/0 group-hover:bg-black/50 transition-all rounded-lg flex items-center justify-center">
-                            <div className="bg-white rounded-full p-3 opacity-0 group-hover:opacity-100 transition-all transform scale-75 group-hover:scale-100">
-                              <ZoomIn className="w-6 h-6 text-[#29235C]" />
+            return groups.map((group, groupIndex) => (
+              <div key={`group-${groupIndex}`}>
+                {group.title && (
+                  <div className="bg-gradient-to-r from-[#29235C] to-[#1a1640] text-white px-5 py-3 rounded-lg mb-3 mt-4">
+                    <h4 className="text-base font-bold tracking-wide">{group.title.toUpperCase()}</h4>
+                  </div>
+                )}
+
+                {group.lines.map((line) => {
+                  const hasDetails = line.product?.description_long || line.product?.description_short;
+                  const displayDescription = line.description || line.product?.description_short || '';
+
+                  const productImageUrl = line.product
+                    ? line.product.media_items && line.product.media_items.length > 0
+                      ? getPublicImageUrl(STORAGE_BUCKETS.PRODUCTS, line.product.media_items[0].thumbnail_path || line.product.media_items[0].file_path)
+                      : line.product.photo_square_path
+                        ? getPublicImageUrl(STORAGE_BUCKETS.PRODUCTS, line.product.photo_square_path)
+                        : null
+                    : null;
+
+                  return (
+                    <div key={line.id} className="bg-white rounded-lg shadow-sm border overflow-hidden">
+                      <div className="p-4 sm:p-5">
+                        <div className="flex gap-4">
+                          <div className="flex flex-col items-center flex-shrink-0">
+                            {productImageUrl && (
+                              <div className="relative group">
+                                <img
+                                  src={productImageUrl}
+                                  alt={line.name}
+                                  className="w-32 h-32 sm:w-40 sm:h-40 object-cover rounded-lg cursor-pointer transition-all group-hover:shadow-lg"
+                                  onClick={() => line.product && handleOpenProductModal(line.product, line.name)}
+                                  onError={(e) => {
+                                    e.currentTarget.style.display = 'none';
+                                  }}
+                                />
+                                <div className="absolute inset-0 bg-black/0 group-hover:bg-black/50 transition-all rounded-lg flex items-center justify-center">
+                                  <div className="bg-white rounded-full p-3 opacity-0 group-hover:opacity-100 transition-all transform scale-75 group-hover:scale-100">
+                                    <ZoomIn className="w-6 h-6 text-[#29235C]" />
+                                  </div>
+                                </div>
+                              </div>
+                            )}
+                            {hasDetails && line.product && (
+                              <button
+                                onClick={() => handleOpenProductModal(line.product!, line.name)}
+                                className="mt-3 inline-flex items-center gap-1.5 text-sm text-[#29235C] hover:text-[#1f1a4d] font-medium"
+                              >
+                                <ZoomIn className="w-4 h-4" />
+                                Voir détails
+                              </button>
+                            )}
+                          </div>
+
+                          <div className="flex-1 min-w-0 flex flex-col">
+                            <div className="flex-1">
+                              <h4 className="font-bold text-gray-900 text-lg mb-1">{line.name}</h4>
+                              <p className="text-sm text-gray-500 mb-3">{line.reference}</p>
+                              {displayDescription && (
+                                <p className="text-sm text-gray-700 leading-relaxed mb-4">
+                                  {displayDescription}
+                                </p>
+                              )}
+                            </div>
+
+                            <div className="flex flex-wrap items-end gap-6 mt-auto">
+                              <div>
+                                <span className="text-sm text-gray-600 block mb-1.5">Quantité</span>
+                                {!isAccepted ? (
+                                  <div className="flex items-center gap-2">
+                                    <button
+                                      onClick={() => handleLineQuantityChange(line.id, -1)}
+                                      disabled={customQuantities[line.id] === 1 || (line.quantity === 1 && !customQuantities[line.id])}
+                                      className="w-8 h-8 flex items-center justify-center bg-white border-2 rounded-lg hover:bg-gray-50 transition-colors disabled:opacity-30 disabled:cursor-not-allowed"
+                                    >
+                                      <Minus className="w-4 h-4 text-gray-600" />
+                                    </button>
+                                    <span className="w-10 text-center font-bold text-gray-900 text-lg">
+                                      {customQuantities[line.id] ?? line.quantity}
+                                    </span>
+                                    <button
+                                      onClick={() => handleLineQuantityChange(line.id, 1)}
+                                      className="w-8 h-8 flex items-center justify-center bg-[#E72C63] text-white rounded-lg hover:bg-[#d12656] transition-colors"
+                                    >
+                                      <Plus className="w-4 h-4" />
+                                    </button>
+                                  </div>
+                                ) : (
+                                  <p className="font-bold text-gray-900 text-lg">{customQuantities[line.id] ?? line.quantity}</p>
+                                )}
+                              </div>
+
+                              <div>
+                                <span className="text-sm text-gray-600 block mb-1.5">Prix unitaire HT</span>
+                                <p className="font-bold text-gray-900 text-lg">{line.price_ht.toFixed(2)} €</p>
+                              </div>
+
+                              <div className="ml-auto text-right">
+                                <span className="text-sm text-gray-600 block mb-1.5">Total TTC</span>
+                                <p className="text-2xl font-bold text-[#29235C]">
+                                  {(() => {
+                                    const quantity = customQuantities[line.id] ?? line.quantity;
+                                    const totalHT = line.price_ht * quantity;
+                                    const totalTTC = totalHT * (1 + line.vat_rate / 100);
+                                    return totalTTC.toFixed(2);
+                                  })()} €
+                                </p>
+                              </div>
                             </div>
                           </div>
                         </div>
-                      )}
-                      {hasDetails && line.product && (
-                        <button
-                          onClick={() => handleOpenProductModal(line.product!, line.name)}
-                          className="mt-3 inline-flex items-center gap-1.5 text-sm text-[#29235C] hover:text-[#1f1a4d] font-medium"
-                        >
-                          <ZoomIn className="w-4 h-4" />
-                          Voir détails
-                        </button>
-                      )}
-                    </div>
-
-                    <div className="flex-1 min-w-0 flex flex-col">
-                      <div className="flex-1">
-                        <h4 className="font-bold text-gray-900 text-lg mb-1">{line.name}</h4>
-                        <p className="text-sm text-gray-500 mb-3">{line.reference}</p>
-                        {line.product?.description_short && (
-                          <p className="text-sm text-gray-700 leading-relaxed mb-4">
-                            {line.product.description_short}
-                          </p>
-                        )}
-                      </div>
-
-                      <div className="flex flex-wrap items-end gap-6 mt-auto">
-                        <div>
-                          <span className="text-sm text-gray-600 block mb-1.5">Quantité</span>
-                          {!isAccepted ? (
-                            <div className="flex items-center gap-2">
-                              <button
-                                onClick={() => handleLineQuantityChange(line.id, -1)}
-                                disabled={customQuantities[line.id] === 1 || (line.quantity === 1 && !customQuantities[line.id])}
-                                className="w-8 h-8 flex items-center justify-center bg-white border-2 rounded-lg hover:bg-gray-50 transition-colors disabled:opacity-30 disabled:cursor-not-allowed"
-                              >
-                                <Minus className="w-4 h-4 text-gray-600" />
-                              </button>
-                              <span className="w-10 text-center font-bold text-gray-900 text-lg">
-                                {customQuantities[line.id] ?? line.quantity}
-                              </span>
-                              <button
-                                onClick={() => handleLineQuantityChange(line.id, 1)}
-                                className="w-8 h-8 flex items-center justify-center bg-[#E72C63] text-white rounded-lg hover:bg-[#d12656] transition-colors"
-                              >
-                                <Plus className="w-4 h-4" />
-                              </button>
-                            </div>
-                          ) : (
-                            <p className="font-bold text-gray-900 text-lg">{customQuantities[line.id] ?? line.quantity}</p>
-                          )}
-                        </div>
-
-                        <div>
-                          <span className="text-sm text-gray-600 block mb-1.5">Prix unitaire HT</span>
-                          <p className="font-bold text-gray-900 text-lg">{line.price_ht.toFixed(2)} €</p>
-                        </div>
-
-                        <div className="ml-auto text-right">
-                          <span className="text-sm text-gray-600 block mb-1.5">Total TTC</span>
-                          <p className="text-2xl font-bold text-[#29235C]">
-                            {(() => {
-                              const quantity = customQuantities[line.id] ?? line.quantity;
-                              const totalHT = line.price_ht * quantity;
-                              const totalTTC = totalHT * (1 + line.vat_rate / 100);
-                              return totalTTC.toFixed(2);
-                            })()} €
-                          </p>
-                        </div>
                       </div>
                     </div>
+                  );
+                })}
+
+                {/* Section subtotal */}
+                {group.title && group.lines.length > 0 && (
+                  <div className="bg-gray-50 border rounded-lg px-5 py-2.5 flex justify-between items-center mt-2 mb-4">
+                    <span className="text-sm font-semibold text-[#29235C]">Sous-total {group.title} :</span>
+                    <span className="text-sm font-bold text-[#29235C]">
+                      {(() => {
+                        const sectionHT = group.lines.reduce((acc, line) => {
+                          const qty = customQuantities[line.id] ?? line.quantity;
+                          return acc + line.price_ht * qty;
+                        }, 0);
+                        const sectionTTC = group.lines.reduce((acc, line) => {
+                          const qty = customQuantities[line.id] ?? line.quantity;
+                          const ht = line.price_ht * qty;
+                          return acc + ht * (1 + line.vat_rate / 100);
+                        }, 0);
+                        return `${sectionHT.toFixed(2)} € HT  /  ${sectionTTC.toFixed(2)} € TTC`;
+                      })()}
+                    </span>
                   </div>
-                </div>
+                )}
               </div>
-            );
-          })}
+            ));
+          })()}
         </div>
 
         {(devis.options.leasing || devis.options.telesurveillance) && (
@@ -1157,8 +1211,8 @@ export const DevisViewer: React.FC<DevisViewerProps> = ({ token }) => {
                           key={index}
                           onClick={() => setCurrentMediaIndex(index)}
                           className={`flex-shrink-0 w-20 h-20 rounded overflow-hidden border-2 transition-all ${index === currentMediaIndex
-                              ? 'border-[#E72C63] scale-105'
-                              : 'border-transparent opacity-60 hover:opacity-100'
+                            ? 'border-[#E72C63] scale-105'
+                            : 'border-transparent opacity-60 hover:opacity-100'
                             }`}
                         >
                           {item.type === 'image' ? (
