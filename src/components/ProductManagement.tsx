@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { Plus, Package, Save, X, Upload, Euro, Tag, FileText, Image as ImageIcon, Video, Trash2, ChevronUp, ChevronDown, Play, Check } from 'lucide-react';
+import { Plus, Package, Save, X, Upload, Euro, Tag, FileText, Image as ImageIcon, Video, Trash2, ChevronUp, ChevronDown, Play, Check, Search, Edit3 } from 'lucide-react';
 import { useProducts } from '../hooks/useProducts';
 import { Product } from '../types';
 import { supabase } from '../lib/supabase';
@@ -29,7 +29,7 @@ interface ProductWithMedia extends Product {
 }
 
 export const ProductManagement: React.FC = () => {
-  const { products, categories, loading, addProduct, getPublicUrlForStoragePath, fetchProducts } = useProducts();
+  const { products, categories, loading, addProduct, updateProduct, getPublicUrlForStoragePath, fetchProducts } = useProducts();
   const [showAddForm, setShowAddForm] = useState(false);
   const [saving, setSaving] = useState(false);
   const [selectedProductForMedia, setSelectedProductForMedia] = useState<ProductWithMedia | null>(null);
@@ -39,6 +39,10 @@ export const ProductManagement: React.FC = () => {
   const [selectedMediaIds, setSelectedMediaIds] = useState<Set<string>>(new Set());
   const [initialSelectedMediaIds, setInitialSelectedMediaIds] = useState<Set<string>>(new Set());
   const [savingMediaChanges, setSavingMediaChanges] = useState(false);
+  const [searchQuery, setSearchQuery] = useState('');
+  const [editingProduct, setEditingProduct] = useState<Product | null>(null);
+  const [editForm, setEditForm] = useState<Partial<Product>>({});
+  const [savingEdit, setSavingEdit] = useState(false);
   const [newProduct, setNewProduct] = useState<Partial<Product>>({
     reference: '',
     name: '',
@@ -352,6 +356,20 @@ export const ProductManagement: React.FC = () => {
             </div>
           </div>
 
+          {/* Search */}
+          <div className="relative mb-6">
+            <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
+              <Search className="h-5 w-5 text-gray-400" />
+            </div>
+            <input
+              type="text"
+              placeholder="Rechercher un produit (nom, référence, catégorie)..."
+              value={searchQuery}
+              onChange={(e) => setSearchQuery(e.target.value)}
+              className="w-full pl-10 pr-4 py-3 min-h-[44px] border border-gray-300 rounded-lg focus:ring-2 focus:ring-[#29235C] focus:border-[#29235C] transition-colors"
+            />
+          </div>
+
           {/* Products Table */}
           <div className="overflow-x-auto">
             <table className="w-full border-collapse">
@@ -367,43 +385,78 @@ export const ProductManagement: React.FC = () => {
                 </tr>
               </thead>
               <tbody>
-                {products.map((product, index) => (
-                  <tr key={product.id} className={index % 2 === 0 ? 'bg-white' : 'bg-gray-50'}>
-                    <td className="p-3 border-b text-sm font-mono">{product.reference}</td>
-                    <td className="p-3 border-b">
-                      <div>
-                        <p className="font-medium text-gray-900">{product.name}</p>
-                        <p className="text-sm text-gray-500 truncate max-w-xs">{product.description_short}</p>
-                      </div>
-                    </td>
-                    <td className="p-3 border-b">
-                      <span className="px-2 py-1 bg-blue-100 text-blue-800 text-xs rounded-full">
-                        {product.category}
-                      </span>
-                    </td>
-                    <td className="p-3 border-b font-semibold text-[#29235C]">
-                      {product.price_ht.toFixed(2)} €
-                    </td>
-                    <td className="p-3 border-b text-sm">{product.default_vat_rate}%</td>
-                    <td className="p-3 border-b">
-                      <span className={`px-2 py-1 text-xs rounded-full ${product.is_active
-                        ? 'bg-green-100 text-green-800'
-                        : 'bg-red-100 text-red-800'
-                        }`}>
-                        {product.is_active ? 'Actif' : 'Inactif'}
-                      </span>
-                    </td>
-                    <td className="p-3 border-b">
-                      <button
-                        onClick={() => loadMediaForProduct(product as ProductWithMedia)}
-                        className="flex items-center justify-center gap-2 px-3 py-2 min-h-[44px] bg-[#29235C] text-white text-sm rounded-lg hover:bg-[#1f1a4d] transition-colors"
-                      >
-                        <ImageIcon className="w-4 h-4" />
-                        <span>Médias</span>
-                      </button>
-                    </td>
-                  </tr>
-                ))}
+                {products
+                  .filter(product => {
+                    if (!searchQuery.trim()) return true;
+                    const q = searchQuery.toLowerCase();
+                    return (
+                      product.name.toLowerCase().includes(q) ||
+                      product.reference.toLowerCase().includes(q) ||
+                      product.category.toLowerCase().includes(q) ||
+                      (product.description_short && product.description_short.toLowerCase().includes(q))
+                    );
+                  })
+                  .map((product, index) => (
+                    <tr key={product.id} className={index % 2 === 0 ? 'bg-white' : 'bg-gray-50'}>
+                      <td className="p-3 border-b text-sm font-mono">{product.reference}</td>
+                      <td className="p-3 border-b">
+                        <div>
+                          <p className="font-medium text-gray-900">{product.name}</p>
+                          <p className="text-sm text-gray-500 truncate max-w-xs">{product.description_short}</p>
+                        </div>
+                      </td>
+                      <td className="p-3 border-b">
+                        <span className="px-2 py-1 bg-blue-100 text-blue-800 text-xs rounded-full">
+                          {product.category}
+                        </span>
+                      </td>
+                      <td className="p-3 border-b font-semibold text-[#29235C]">
+                        {product.price_ht.toFixed(2)} €
+                      </td>
+                      <td className="p-3 border-b text-sm">{product.default_vat_rate}%</td>
+                      <td className="p-3 border-b">
+                        <span className={`px-2 py-1 text-xs rounded-full ${product.is_active
+                          ? 'bg-green-100 text-green-800'
+                          : 'bg-red-100 text-red-800'
+                          }`}>
+                          {product.is_active ? 'Actif' : 'Inactif'}
+                        </span>
+                      </td>
+                      <td className="p-3 border-b">
+                        <div className="flex gap-2">
+                          <button
+                            onClick={() => {
+                              setEditingProduct(product);
+                              setEditForm({
+                                reference: product.reference,
+                                name: product.name,
+                                category: product.category,
+                                description_short: product.description_short,
+                                description_long: product.description_long,
+                                price_ht: product.price_ht,
+                                default_vat_rate: product.default_vat_rate,
+                                is_active: product.is_active,
+                                proposer_en_option: product.proposer_en_option,
+                                ref_extrabat: product.ref_extrabat,
+                              });
+                            }}
+                            className="flex items-center justify-center gap-2 px-3 py-2 min-h-[44px] bg-amber-500 text-white text-sm rounded-lg hover:bg-amber-600 transition-colors"
+                            title="Modifier le produit"
+                          >
+                            <Edit3 className="w-4 h-4" />
+                            <span className="hidden lg:inline">Modifier</span>
+                          </button>
+                          <button
+                            onClick={() => loadMediaForProduct(product as ProductWithMedia)}
+                            className="flex items-center justify-center gap-2 px-3 py-2 min-h-[44px] bg-[#29235C] text-white text-sm rounded-lg hover:bg-[#1f1a4d] transition-colors"
+                          >
+                            <ImageIcon className="w-4 h-4" />
+                            <span className="hidden lg:inline">Médias</span>
+                          </button>
+                        </div>
+                      </td>
+                    </tr>
+                  ))}
               </tbody>
             </table>
           </div>
@@ -827,6 +880,212 @@ export const ProductManagement: React.FC = () => {
         </div>
       )
       }
+
+      {/* Edit Product Modal */}
+      {editingProduct && (
+        <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4">
+          <div className="bg-white rounded-lg w-full max-w-2xl max-h-[90vh] overflow-y-auto">
+            <div className="p-6 border-b flex items-center justify-between">
+              <h3 className="text-xl font-semibold text-[#29235C] flex items-center gap-2">
+                <Edit3 className="w-5 h-5" />
+                Modifier le produit
+              </h3>
+              <button
+                onClick={() => { setEditingProduct(null); setEditForm({}); }}
+                className="p-3 min-w-[44px] min-h-[44px] flex items-center justify-center hover:bg-gray-100 rounded-lg transition-colors"
+              >
+                <X className="w-5 h-5" />
+              </button>
+            </div>
+
+            <form onSubmit={async (e) => {
+              e.preventDefault();
+              if (!editingProduct) return;
+              setSavingEdit(true);
+              try {
+                const result = await updateProduct(editingProduct.id, editForm);
+                if (result.success) {
+                  setEditingProduct(null);
+                  setEditForm({});
+                  alert('Produit modifié avec succès !');
+                } else {
+                  alert(result.error || 'Erreur lors de la modification');
+                }
+              } catch (error) {
+                alert('Erreur lors de la modification du produit');
+              } finally {
+                setSavingEdit(false);
+              }
+            }} className="p-6 space-y-4">
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-1">
+                    Référence <span className="text-red-500">*</span>
+                  </label>
+                  <input
+                    type="text"
+                    value={editForm.reference || ''}
+                    onChange={(e) => setEditForm(prev => ({ ...prev, reference: e.target.value }))}
+                    className="w-full px-3 py-2 min-h-[44px] border border-gray-300 rounded-lg focus:ring-2 focus:ring-[#29235C] focus:border-transparent"
+                    required
+                  />
+                </div>
+
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-1">
+                    Catégorie <span className="text-red-500">*</span>
+                  </label>
+                  <input
+                    type="text"
+                    value={editForm.category || ''}
+                    onChange={(e) => setEditForm(prev => ({ ...prev, category: e.target.value }))}
+                    className="w-full px-3 py-2 min-h-[44px] border border-gray-300 rounded-lg focus:ring-2 focus:ring-[#29235C] focus:border-transparent"
+                    list="edit-categories"
+                    required
+                  />
+                  <datalist id="edit-categories">
+                    {categories.map(cat => (
+                      <option key={cat} value={cat} />
+                    ))}
+                  </datalist>
+                </div>
+              </div>
+
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-1">
+                  Nom du produit <span className="text-red-500">*</span>
+                </label>
+                <input
+                  type="text"
+                  value={editForm.name || ''}
+                  onChange={(e) => setEditForm(prev => ({ ...prev, name: e.target.value }))}
+                  className="w-full px-3 py-2 min-h-[44px] border border-gray-300 rounded-lg focus:ring-2 focus:ring-[#29235C] focus:border-transparent"
+                  required
+                />
+              </div>
+
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-1">
+                  Description courte <span className="text-red-500">*</span>
+                </label>
+                <input
+                  type="text"
+                  value={editForm.description_short || ''}
+                  onChange={(e) => setEditForm(prev => ({ ...prev, description_short: e.target.value }))}
+                  className="w-full px-3 py-2 min-h-[44px] border border-gray-300 rounded-lg focus:ring-2 focus:ring-[#29235C] focus:border-transparent"
+                  required
+                />
+              </div>
+
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-1">
+                  Description détaillée
+                </label>
+                <textarea
+                  value={editForm.description_long || ''}
+                  onChange={(e) => setEditForm(prev => ({ ...prev, description_long: e.target.value }))}
+                  rows={3}
+                  className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[#29235C] focus:border-transparent"
+                />
+              </div>
+
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-1">
+                    Prix HT (€) <span className="text-red-500">*</span>
+                  </label>
+                  <div className="relative">
+                    <Euro className="w-4 h-4 text-gray-400 absolute left-3 top-1/2 transform -translate-y-1/2" />
+                    <input
+                      type="number"
+                      step="0.01"
+                      min="0"
+                      value={editForm.price_ht ?? ''}
+                      onChange={(e) => setEditForm(prev => ({ ...prev, price_ht: parseFloat(e.target.value) || 0 }))}
+                      className="w-full pl-10 pr-3 py-2 min-h-[44px] border border-gray-300 rounded-lg focus:ring-2 focus:ring-[#29235C] focus:border-transparent"
+                      required
+                    />
+                  </div>
+                </div>
+
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-1">
+                    Taux TVA (%)
+                  </label>
+                  <select
+                    value={editForm.default_vat_rate ?? 20}
+                    onChange={(e) => setEditForm(prev => ({ ...prev, default_vat_rate: parseFloat(e.target.value) }))}
+                    className="w-full px-3 py-2 min-h-[44px] border border-gray-300 rounded-lg focus:ring-2 focus:ring-[#29235C] focus:border-transparent"
+                  >
+                    <option value={20}>20%</option>
+                    <option value={10}>10%</option>
+                    <option value={5.5}>5.5%</option>
+                    <option value={2.1}>2.1%</option>
+                    <option value={0}>0%</option>
+                  </select>
+                </div>
+              </div>
+
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-1">
+                  Réf. Extrabat
+                </label>
+                <input
+                  type="text"
+                  value={editForm.ref_extrabat || ''}
+                  onChange={(e) => setEditForm(prev => ({ ...prev, ref_extrabat: e.target.value }))}
+                  className="w-full px-3 py-2 min-h-[44px] border border-gray-300 rounded-lg focus:ring-2 focus:ring-[#29235C] focus:border-transparent"
+                  placeholder="Référence Extrabat (optionnel)"
+                />
+              </div>
+
+              <div className="flex items-center gap-3">
+                <input
+                  type="checkbox"
+                  id="edit_is_active"
+                  checked={editForm.is_active || false}
+                  onChange={(e) => setEditForm(prev => ({ ...prev, is_active: e.target.checked }))}
+                  className="w-4 h-4 text-[#29235C] rounded focus:ring-[#29235C]"
+                />
+                <label htmlFor="edit_is_active" className="text-sm text-gray-700">
+                  Produit actif (visible dans le catalogue)
+                </label>
+              </div>
+
+              <div className="flex items-center gap-3">
+                <input
+                  type="checkbox"
+                  id="edit_proposer_en_option"
+                  checked={editForm.proposer_en_option || false}
+                  onChange={(e) => setEditForm(prev => ({ ...prev, proposer_en_option: e.target.checked }))}
+                  className="w-4 h-4 text-[#E72C63] rounded focus:ring-[#E72C63]"
+                />
+                <label htmlFor="edit_proposer_en_option" className="text-sm text-gray-700">
+                  Proposer en option dans les devis en ligne
+                </label>
+              </div>
+
+              <div className="flex justify-end gap-3 pt-4 border-t">
+                <button
+                  type="button"
+                  onClick={() => { setEditingProduct(null); setEditForm({}); }}
+                  className="px-4 py-2 min-h-[44px] text-gray-600 hover:bg-gray-100 rounded-lg transition-colors"
+                >
+                  Annuler
+                </button>
+                <button
+                  type="submit"
+                  disabled={savingEdit}
+                  className="flex items-center justify-center gap-2 px-4 py-2 min-h-[44px] bg-[#E72C63] text-white rounded-lg hover:bg-[#d12656] transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+                >
+                  <Save className="w-5 h-5" />
+                  {savingEdit ? 'Enregistrement...' : 'Enregistrer'}
+                </button>
+              </div>
+            </form>
+          </div>
+        </div>
+      )}
     </div >
   );
 };

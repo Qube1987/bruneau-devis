@@ -65,9 +65,9 @@ export const useProducts = () => {
       return { success: true };
     } catch (error: any) {
       console.error('Error adding product:', error);
-      return { 
-        success: false, 
-        error: error.message || 'Erreur lors de l\'ajout du produit' 
+      return {
+        success: false,
+        error: error.message || 'Erreur lors de l\'ajout du produit'
       };
     }
   };
@@ -146,6 +146,28 @@ export const useProducts = () => {
     }
   };
 
+  const updateProduct = async (id: string, productData: Partial<Product>): Promise<{ success: boolean; error?: string }> => {
+    try {
+      const { error } = await supabase
+        .from('products')
+        .update(productData)
+        .eq('id', id);
+
+      if (error) throw error;
+
+      // Refresh the products list
+      await fetchProducts();
+
+      return { success: true };
+    } catch (error: any) {
+      console.error('Error updating product:', error);
+      return {
+        success: false,
+        error: error.message || 'Erreur lors de la mise à jour du produit'
+      };
+    }
+  };
+
   return {
     products,
     categories,
@@ -153,6 +175,7 @@ export const useProducts = () => {
     fetchProducts,
     fetchUpsellProducts,
     addProduct,
+    updateProduct,
     getProductImageUrl,
     getPublicUrlForStoragePath,
   };

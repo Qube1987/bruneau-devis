@@ -48,6 +48,8 @@ interface ExtrabatClient {
 interface ClientSearchProps {
   onClientSelect: (client: {
     clientName: string;
+    nom: string;
+    prenom: string;
     email?: string;
     phone?: string;
     address?: string;
@@ -148,6 +150,8 @@ export const ClientSearch: React.FC<ClientSearchProps> = ({ onClientSelect }) =>
 
     onClientSelect({
       clientName,
+      nom: selectedClient.nom,
+      prenom: selectedClient.prenom,
       email: selectedClient.email,
       phone: selectedPhone,
       address: selectedAddress,

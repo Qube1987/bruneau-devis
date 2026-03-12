@@ -640,23 +640,19 @@ export const DevisForm: React.FC<DevisFormProps> = ({ initialDevis, onBack }) =>
 
   const handleClientSelect = (clientData: {
     clientName: string;
+    nom: string;
+    prenom: string;
     email?: string;
     phone?: string;
     address?: string;
     ouvrageId?: number;
     extrabatClientId: number;
   }) => {
-    // Parse client name to extract parts
-    const nameParts = clientData.clientName.split(' ');
-    const civilite = nameParts[0]; // M., Mme, etc.
-    const prenom = nameParts[1] || '';
-    const nom = nameParts.slice(2).join(' ') || '';
-
     setDevis(prev => ({
       ...prev,
       client: {
-        nom: nom,
-        prenom: prenom,
+        nom: clientData.nom,
+        prenom: clientData.prenom,
         email: clientData.email || '',
         telephone: clientData.phone || prev.client.telephone,
         adresse: clientData.address || prev.client.adresse,
