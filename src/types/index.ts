@@ -54,6 +54,8 @@ export interface DevisLine {
   total_vat: number;
   total_ttc: number;
   ref_extrabat?: string;
+  is_section?: boolean;
+  section_title?: string;
 }
 
 export interface DevisTotals {

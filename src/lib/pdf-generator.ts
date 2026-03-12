@@ -123,7 +123,7 @@ export const generatePDF = async (
 
           if (base64Image) {
             const compressed = await compressImage(base64Image, 200, 0.6);
-            console.log(`Compressed ${line.product?.name}: ${Math.round(base64Image.length/1024)}KB -> ${Math.round(compressed.length/1024)}KB`);
+            console.log(`Compressed ${line.product?.name}: ${Math.round(base64Image.length / 1024)}KB -> ${Math.round(compressed.length / 1024)}KB`);
             return compressed;
           }
         }
@@ -145,7 +145,7 @@ export const generatePDF = async (
 
       if (base64Image) {
         const compressed = await compressImage(base64Image, 200, 0.6);
-        console.log(`Compressed ${line.product?.name}: ${Math.round(base64Image.length/1024)}KB -> ${Math.round(compressed.length/1024)}KB`);
+        console.log(`Compressed ${line.product?.name}: ${Math.round(base64Image.length / 1024)}KB -> ${Math.round(compressed.length / 1024)}KB`);
         return compressed;
       }
 
@@ -154,97 +154,165 @@ export const generatePDF = async (
   );
   console.log('All images processed.');
 
-  for (let index = 0; index < devis.lignes.length; index++) {
-    const line = devis.lignes[index];
-    const imageBase64 = productImages[index];
+  // Group lines into sections for subtotal rendering
+  interface SectionGroup {
+    title: string | undefined;
+    lines: { line: typeof devis.lignes[0]; imageBase64: string | null; originalIndex: number }[];
+  }
+  const sectionGroups: SectionGroup[] = [];
+  let currentGroup: SectionGroup | null = null;
 
-    const cardHeight = 32;
-    const imageSize = 30;
-    const contentX = margin + 6;
-    const imageX = contentX + 1;
+  for (let i = 0; i < devis.lignes.length; i++) {
+    const line = devis.lignes[i];
+    if (line.is_section) {
+      currentGroup = { title: line.section_title, lines: [] };
+      sectionGroups.push(currentGroup);
+    } else {
+      if (!currentGroup) {
+        // Lines before any section header — create an implicit group with no title
+        currentGroup = { title: undefined, lines: [] };
+        sectionGroups.push(currentGroup);
+      }
+      currentGroup.lines.push({ line, imageBase64: productImages[i], originalIndex: i });
+    }
+  }
 
-    if (yPos + cardHeight > pageHeight - 25) {
-      pdf.addPage();
-      yPos = margin;
+  for (const group of sectionGroups) {
+    // Render section header if it has a title
+    if (group.title) {
+      if (yPos + 12 > pageHeight - 25) {
+        pdf.addPage();
+        yPos = margin;
+      }
+
+      pdf.setFillColor(41, 35, 92);
+      pdf.roundedRect(margin, yPos, pageWidth - 2 * margin, 8, 2, 2, 'F');
+      pdf.setTextColor(255, 255, 255);
+      pdf.setFontSize(11);
+      pdf.setFont('helvetica', 'bold');
+      pdf.text(group.title.toUpperCase(), margin + 5, yPos + 5.5);
+      yPos += 11;
     }
 
-    // Fond de carte
-    pdf.setFillColor(245, 245, 245);
-    pdf.setDrawColor(230, 230, 230);
-    pdf.roundedRect(margin, yPos, pageWidth - 2 * margin, cardHeight, 3, 3, 'FD');
+    // Render lines in this group
+    for (const { line, imageBase64 } of group.lines) {
+      const cardHeight = 32;
+      const imageSize = 30;
+      const contentX = margin + 6;
+      const imageX = contentX + 1;
 
-    // Image du produit
-    if (imageBase64) {
-      try {
-        let imageFormat = 'JPEG';
-        if (imageBase64.includes('data:image/png')) {
-          imageFormat = 'PNG';
+      if (yPos + cardHeight > pageHeight - 25) {
+        pdf.addPage();
+        yPos = margin;
+      }
+
+      // Fond de carte
+      pdf.setFillColor(245, 245, 245);
+      pdf.setDrawColor(230, 230, 230);
+      pdf.roundedRect(margin, yPos, pageWidth - 2 * margin, cardHeight, 3, 3, 'FD');
+
+      // Image du produit
+      if (imageBase64) {
+        try {
+          let imageFormat = 'JPEG';
+          if (imageBase64.includes('data:image/png')) {
+            imageFormat = 'PNG';
+          }
+          pdf.addImage(imageBase64, imageFormat, imageX, yPos + 1, imageSize, imageSize);
+
+          // Badge PDF P3/P4/P5
+          const badge = line.product?.reference?.includes('P3') ? 'PDF P3' :
+            line.product?.reference?.includes('P4') ? 'PDF P4' :
+              line.product?.reference?.includes('P5') ? 'PDF P5' : '';
+
+          if (badge) {
+            pdf.setFillColor(41, 35, 92);
+            pdf.rect(imageX, yPos + 1, 18, 6, 'F');
+            pdf.setTextColor(255, 255, 255);
+            pdf.setFontSize(8);
+            pdf.setFont('helvetica', 'bold');
+            pdf.text(badge, imageX + 9, yPos + 5, { align: 'center' });
+          }
+        } catch (error) {
+          console.error('Error adding product image:', error);
+          pdf.setFillColor(220, 220, 220);
+          pdf.rect(imageX, yPos + 1, imageSize, imageSize, 'F');
         }
-        pdf.addImage(imageBase64, imageFormat, imageX, yPos + 1, imageSize, imageSize);
-
-        // Badge PDF P3/P4/P5
-        const badge = line.product?.reference?.includes('P3') ? 'PDF P3' :
-                     line.product?.reference?.includes('P4') ? 'PDF P4' :
-                     line.product?.reference?.includes('P5') ? 'PDF P5' : '';
-
-        if (badge) {
-          pdf.setFillColor(41, 35, 92);
-          pdf.rect(imageX, yPos + 1, 18, 6, 'F');
-          pdf.setTextColor(255, 255, 255);
-          pdf.setFontSize(8);
-          pdf.setFont('helvetica', 'bold');
-          pdf.text(badge, imageX + 9, yPos + 5, { align: 'center' });
-        }
-      } catch (error) {
-        console.error('Error adding product image:', error);
+      } else {
         pdf.setFillColor(220, 220, 220);
         pdf.rect(imageX, yPos + 1, imageSize, imageSize, 'F');
       }
-    } else {
-      pdf.setFillColor(220, 220, 220);
-      pdf.rect(imageX, yPos + 1, imageSize, imageSize, 'F');
-    }
 
-    // Contenu texte
-    const textX = imageX + imageSize + 5;
-    const rightX = pageWidth - margin - 5;
+      // Contenu texte
+      const textX = imageX + imageSize + 5;
+      const rightX = pageWidth - margin - 5;
 
-    pdf.setTextColor(0, 0, 0);
-    pdf.setFontSize(12);
-    pdf.setFont('helvetica', 'bold');
-    const nameLines = pdf.splitTextToSize(line.name, rightX - textX - 35);
-    pdf.text(nameLines[0] || line.name, textX, yPos + 7);
+      pdf.setTextColor(0, 0, 0);
+      pdf.setFontSize(12);
+      pdf.setFont('helvetica', 'bold');
+      const nameLines = pdf.splitTextToSize(line.name, rightX - textX - 35);
+      pdf.text(nameLines[0] || line.name, textX, yPos + 7);
 
-    // Description
-    const description = line.product?.description_short || '';
-    if (description) {
-      pdf.setFontSize(9);
-      pdf.setFont('helvetica', 'normal');
-      pdf.setTextColor(80, 80, 80);
-      const descLines = pdf.splitTextToSize(description, rightX - textX - 35);
-      const maxLines = 3;
-      for (let i = 0; i < Math.min(descLines.length, maxLines); i++) {
-        pdf.text(descLines[i], textX, yPos + 12 + (i * 3.5));
+      // Description — use the editable line.description
+      const description = line.description || '';
+      if (description) {
+        pdf.setFontSize(9);
+        pdf.setFont('helvetica', 'normal');
+        pdf.setTextColor(80, 80, 80);
+        const descLines = pdf.splitTextToSize(description, rightX - textX - 35);
+        const maxLines = 3;
+        for (let i = 0; i < Math.min(descLines.length, maxLines); i++) {
+          pdf.text(descLines[i], textX, yPos + 12 + (i * 3.5));
+        }
       }
+
+      // Quantité et prix à droite
+      const quantity = customQuantities?.[line.id] ?? line.quantity;
+      const totalHT = line.price_ht * quantity;
+      const totalTTC = totalHT * (1 + line.vat_rate / 100);
+
+      pdf.setFontSize(10);
+      pdf.setFont('helvetica', 'normal');
+      pdf.setTextColor(0, 0, 0);
+      pdf.text('Qte', rightX - 30, yPos + 7, { align: 'right' });
+      pdf.text('Total TTC', rightX, yPos + 7, { align: 'right' });
+
+      pdf.setFontSize(13);
+      pdf.setFont('helvetica', 'bold');
+      pdf.text(quantity.toString(), rightX - 30, yPos + 15, { align: 'right' });
+      pdf.text(`${totalTTC.toFixed(2)} \u20ac`, rightX, yPos + 15, { align: 'right' });
+
+      yPos += cardHeight + 3;
     }
 
-    // Quantité et prix à droite
-    const quantity = customQuantities?.[line.id] ?? line.quantity;
-    const totalHT = line.price_ht * quantity;
-    const totalTTC = totalHT * (1 + line.vat_rate / 100);
+    // Section subtotal (only if the group has a title, i.e. it's an explicit section)
+    if (group.title && group.lines.length > 0) {
+      if (yPos + 8 > pageHeight - 25) {
+        pdf.addPage();
+        yPos = margin;
+      }
 
-    pdf.setFontSize(10);
-    pdf.setFont('helvetica', 'normal');
-    pdf.setTextColor(0, 0, 0);
-    pdf.text('Qte', rightX - 30, yPos + 7, { align: 'right' });
-    pdf.text('Total TTC', rightX, yPos + 7, { align: 'right' });
+      const sectionHT = group.lines.reduce((acc, { line }) => {
+        const qty = customQuantities?.[line.id] ?? line.quantity;
+        return acc + line.price_ht * qty;
+      }, 0);
+      const sectionTTC = group.lines.reduce((acc, { line }) => {
+        const qty = customQuantities?.[line.id] ?? line.quantity;
+        const ht = line.price_ht * qty;
+        return acc + ht * (1 + line.vat_rate / 100);
+      }, 0);
 
-    pdf.setFontSize(13);
-    pdf.setFont('helvetica', 'bold');
-    pdf.text(quantity.toString(), rightX - 30, yPos + 15, { align: 'right' });
-    pdf.text(`${totalTTC.toFixed(2)} €`, rightX, yPos + 15, { align: 'right' });
+      pdf.setFillColor(235, 235, 250);
+      pdf.roundedRect(margin, yPos, pageWidth - 2 * margin, 7, 2, 2, 'F');
 
-    yPos += cardHeight + 3;
+      pdf.setTextColor(41, 35, 92);
+      pdf.setFontSize(9);
+      pdf.setFont('helvetica', 'bold');
+      pdf.text(`Sous-total ${group.title} :`, margin + 5, yPos + 4.5);
+      pdf.text(`${sectionHT.toFixed(2)} \u20ac HT  /  ${sectionTTC.toFixed(2)} \u20ac TTC`, pageWidth - margin - 5, yPos + 4.5, { align: 'right' });
+
+      yPos += 10;
+    }
   }
 
   // Section Options
@@ -320,7 +388,7 @@ export const generatePDF = async (
   let baseHT = 0;
   let baseTVA: { [key: string]: number } = {};
 
-  devis.lignes.forEach((line) => {
+  devis.lignes.filter(l => !l.is_section).forEach((line) => {
     const quantity = customQuantities?.[line.id] ?? line.quantity;
     const lineHT = line.price_ht * quantity;
     const vatRate = line.vat_rate;

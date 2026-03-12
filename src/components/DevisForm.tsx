@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { User, FileText, Calculator, Image as ImageIcon, Save, Send, Trash2, Plus, Minus, CheckCircle, AlertCircle, Sparkles, RefreshCw, Edit3, ChevronUp, ChevronDown, FilePlus2 } from 'lucide-react';
+import { User, FileText, Calculator, Image as ImageIcon, Save, Send, Trash2, Plus, Minus, CheckCircle, AlertCircle, Sparkles, RefreshCw, Edit3, ChevronUp, ChevronDown, FilePlus2, Layers } from 'lucide-react';
 import { ProductCatalog } from './ProductCatalog';
 import { DrawingCanvas } from './DrawingCanvas';
 import { ClientSearch } from './ClientSearch';
@@ -45,6 +45,7 @@ export const DevisForm: React.FC<DevisFormProps> = ({ initialDevis, onBack }) =>
   const [logoBase64, setLogoBase64] = useState<string | null>(null);
   const [editingPrice, setEditingPrice] = useState<{ lineId: string; value: string } | null>(null);
   const [generatingIntro, setGeneratingIntro] = useState(false);
+  const [editingLineText, setEditingLineText] = useState<{ lineId: string; field: 'name' | 'description' } | null>(null);
 
   const { saveDevis, loadDevis, loading: saveLoading } = useDevis();
   const { getProductImageUrl, getPublicUrlForStoragePath, fetchUpsellProducts } = useProducts();
@@ -136,16 +137,18 @@ export const DevisForm: React.FC<DevisFormProps> = ({ initialDevis, onBack }) =>
   }, [devis.lignes, devis.taux_tva]);
 
   const calculateTotals = () => {
-    const totals = devis.lignes.reduce((acc, line) => {
-      const totalHT = line.quantity * line.price_ht;
-      const totalVAT = totalHT * (devis.taux_tva / 100);
+    const totals = devis.lignes
+      .filter(line => !line.is_section)
+      .reduce((acc, line) => {
+        const totalHT = line.quantity * line.price_ht;
+        const totalVAT = totalHT * (devis.taux_tva / 100);
 
-      acc.ht += totalHT;
-      acc.tva[devis.taux_tva] = (acc.tva[devis.taux_tva] || 0) + totalVAT;
-      acc.ttc += totalHT + totalVAT;
+        acc.ht += totalHT;
+        acc.tva[devis.taux_tva] = (acc.tva[devis.taux_tva] || 0) + totalVAT;
+        acc.ttc += totalHT + totalVAT;
 
-      return acc;
-    }, { ht: 0, tva: {} as { [key: string]: number }, ttc: 0, acompte: 0 });
+        return acc;
+      }, { ht: 0, tva: {} as { [key: string]: number }, ttc: 0, acompte: 0 });
 
     totals.acompte = totals.ttc * 0.4; // 40% acompte
 
@@ -296,6 +299,56 @@ export const DevisForm: React.FC<DevisFormProps> = ({ initialDevis, onBack }) =>
       [newLignes[index], newLignes[index + 1]] = [newLignes[index + 1], newLignes[index]];
       return { ...prev, lignes: newLignes };
     });
+  };
+
+  const updateLineText = (lineId: string, field: 'name' | 'description' | 'section_title', value: string) => {
+    setDevis(prev => ({
+      ...prev,
+      lignes: prev.lignes.map(line =>
+        line.id === lineId ? { ...line, [field]: value } : line
+      )
+    }));
+  };
+
+  const addSectionSeparator = () => {
+    const sectionLine: DevisLine = {
+      id: Math.random().toString(36).substr(2, 9),
+      is_section: true,
+      section_title: 'Nouvelle section',
+      reference: '',
+      name: '',
+      description: '',
+      quantity: 0,
+      price_ht: 0,
+      vat_rate: 0,
+      total_ht: 0,
+      total_vat: 0,
+      total_ttc: 0
+    };
+    setDevis(prev => ({
+      ...prev,
+      lignes: [...prev.lignes, sectionLine]
+    }));
+  };
+
+  // Compute section subtotals: for each section header, compute subtotal of lines following it until next section or end
+  const getSectionSubtotals = () => {
+    const subtotals: { [sectionId: string]: { ht: number; ttc: number } } = {};
+    let currentSectionId: string | null = null;
+
+    for (const line of devis.lignes) {
+      if (line.is_section) {
+        currentSectionId = line.id;
+        subtotals[currentSectionId] = { ht: 0, ttc: 0 };
+      } else if (currentSectionId) {
+        const lineHT = line.price_ht * line.quantity;
+        const lineTTC = lineHT * (1 + devis.taux_tva / 100);
+        subtotals[currentSectionId].ht += lineHT;
+        subtotals[currentSectionId].ttc += lineTTC;
+      }
+    }
+
+    return subtotals;
   };
 
   const handleNewDevis = () => {
@@ -991,111 +1044,249 @@ export const DevisForm: React.FC<DevisFormProps> = ({ initialDevis, onBack }) =>
           {/* Devis Lines */}
           {devis.lignes.length > 0 && (
             <div className="bg-gray-50 rounded-lg p-4 mb-6">
-              <h3 className="text-lg font-semibold text-[#29235C] mb-4">Articles sélectionnés</h3>
+              <div className="flex items-center justify-between mb-4">
+                <h3 className="text-lg font-semibold text-[#29235C]">Articles sélectionnés</h3>
+                <button
+                  onClick={addSectionSeparator}
+                  className="flex items-center gap-2 px-3 py-2 min-h-[44px] bg-indigo-100 text-indigo-700 text-sm rounded-lg hover:bg-indigo-200 transition-colors"
+                  title="Ajouter un séparateur de section"
+                >
+                  <Layers className="w-4 h-4" />
+                  <span>+ Section</span>
+                </button>
+              </div>
 
               <div className="space-y-3">
-                {devis.lignes.map((line, index) => (
-                  <div key={line.id} className={`p-4 rounded-lg flex items-center gap-2 ${line.quantity === 0
-                    ? 'bg-blue-50 border-2 border-blue-200'
-                    : 'bg-white'
-                    }`}>
-                    {/* Reorder arrows */}
-                    <div className="flex flex-col gap-1 flex-shrink-0">
-                      <button
-                        onClick={() => moveLineUp(index)}
-                        disabled={index === 0}
-                        className="p-1 min-w-[32px] min-h-[32px] flex items-center justify-center rounded bg-gray-100 hover:bg-[#29235C] hover:text-white transition-colors disabled:opacity-30 disabled:hover:bg-gray-100 disabled:hover:text-gray-400 text-gray-500"
-                        title="Monter"
-                      >
-                        <ChevronUp className="w-4 h-4" />
-                      </button>
-                      <button
-                        onClick={() => moveLineDown(index)}
-                        disabled={index === devis.lignes.length - 1}
-                        className="p-1 min-w-[32px] min-h-[32px] flex items-center justify-center rounded bg-gray-100 hover:bg-[#29235C] hover:text-white transition-colors disabled:opacity-30 disabled:hover:bg-gray-100 disabled:hover:text-gray-400 text-gray-500"
-                        title="Descendre"
-                      >
-                        <ChevronDown className="w-4 h-4" />
-                      </button>
-                    </div>
+                {(() => {
+                  const sectionSubtotals = getSectionSubtotals();
+                  // Find the next section index after each section to know where to show subtotal
+                  const nextSectionOrEnd: { [id: string]: number } = {};
+                  let lastSectionId: string | null = null;
+                  for (let i = 0; i < devis.lignes.length; i++) {
+                    if (devis.lignes[i].is_section) {
+                      if (lastSectionId) {
+                        nextSectionOrEnd[lastSectionId] = i;
+                      }
+                      lastSectionId = devis.lignes[i].id;
+                    }
+                  }
+                  if (lastSectionId) {
+                    nextSectionOrEnd[lastSectionId] = devis.lignes.length;
+                  }
 
-                    <div className="flex-1">
-                      <div className="flex flex-col sm:flex-row sm:items-center gap-4">
-                        <div className="flex-1">
-                          <div className="flex flex-wrap items-center gap-2">
-                            <p className={`font-medium ${line.quantity === 0 ? 'text-blue-800' : 'text-gray-900'}`}>
-                              {line.name}
-                            </p>
-                            {line.quantity === 0 && (
-                              <span className="text-xs bg-blue-200 text-blue-800 px-2 py-0.5 rounded-full">
-                                Option à commander
-                              </span>
-                            )}
-                          </div>
-                          <p className="text-sm text-gray-500">{line.reference}</p>
-                        </div>
+                  return devis.lignes.map((line, index) => {
+                    // Check if this is the last line before a section subtotal
+                    const showSubtotalAfter = lastSectionId !== null &&
+                      !line.is_section &&
+                      (index + 1 >= devis.lignes.length || devis.lignes[index + 1]?.is_section);
+                    // Find which section this line belongs to
+                    let belongsToSectionId: string | null = null;
+                    for (let i = index - 1; i >= 0; i--) {
+                      if (devis.lignes[i].is_section) {
+                        belongsToSectionId = devis.lignes[i].id;
+                        break;
+                      }
+                    }
 
-                        <div className="flex items-center gap-3">
-                          <div className="flex items-center gap-2">
-                            <button
-                              onClick={() => updateLineQuantity(line.id, line.quantity - 1)}
-                              className="p-2 min-w-[44px] min-h-[44px] flex items-center justify-center rounded-lg bg-gray-200 hover:bg-gray-300 transition-colors"
-                            >
-                              <Minus className="w-5 h-5" />
-                            </button>
-                            <span className="w-12 text-center font-medium">{line.quantity}</span>
-                            <button
-                              onClick={() => updateLineQuantity(line.id, line.quantity + 1)}
-                              className="p-2 min-w-[44px] min-h-[44px] flex items-center justify-center rounded-lg bg-gray-200 hover:bg-gray-300 transition-colors"
-                            >
-                              <Plus className="w-5 h-5" />
-                            </button>
-                          </div>
-
-                          <div className="text-right flex-1 sm:flex-none">
-                            {editingPrice?.lineId === line.id ? (
-                              <input
-                                type="number"
-                                step="0.01"
-                                value={editingPrice.value}
-                                onChange={(e) => handlePriceChange(e.target.value)}
-                                onBlur={handlePriceBlur}
-                                onKeyDown={handlePriceKeyDown}
-                                autoFocus
-                                className="w-24 px-2 py-1 min-h-[44px] text-right border border-[#29235C] rounded focus:ring-2 focus:ring-[#29235C] font-semibold"
-                              />
-                            ) : (
+                    if (line.is_section) {
+                      // Section separator
+                      return (
+                        <div key={line.id}>
+                          <div className="flex items-center gap-2 p-3 bg-gradient-to-r from-[#29235C] to-[#3d3580] rounded-lg">
+                            {/* Reorder arrows */}
+                            <div className="flex flex-col gap-1 flex-shrink-0">
                               <button
-                                onClick={() => handlePriceClick(line.id, line.price_ht)}
-                                className="text-right hover:bg-gray-100 px-2 py-2 min-h-[44px] rounded transition-colors w-full sm:w-auto"
-                                title="Cliquer pour modifier le prix"
+                                onClick={() => moveLineUp(index)}
+                                disabled={index === 0}
+                                className="p-1 min-w-[28px] min-h-[28px] flex items-center justify-center rounded bg-white/20 hover:bg-white/40 transition-colors disabled:opacity-30 text-white"
                               >
-                                {line.quantity === 0 ? (
-                                  <>
-                                    <p className="font-semibold text-blue-700">{line.price_ht.toFixed(2)} € HT/unité</p>
-                                    <p className="text-sm text-blue-600">{(line.price_ht * (1 + devis.taux_tva / 100)).toFixed(2)} € TTC/unité</p>
-                                  </>
-                                ) : (
-                                  <>
-                                    <p className="font-semibold text-[#29235C]">{line.total_ttc.toFixed(2)} € TTC</p>
-                                    <p className="text-sm text-gray-500">{line.price_ht.toFixed(2)} € HT/unité</p>
-                                  </>
-                                )}
+                                <ChevronUp className="w-3 h-3" />
                               </button>
-                            )}
+                              <button
+                                onClick={() => moveLineDown(index)}
+                                disabled={index === devis.lignes.length - 1}
+                                className="p-1 min-w-[28px] min-h-[28px] flex items-center justify-center rounded bg-white/20 hover:bg-white/40 transition-colors disabled:opacity-30 text-white"
+                              >
+                                <ChevronDown className="w-3 h-3" />
+                              </button>
+                            </div>
+
+                            <Layers className="w-5 h-5 text-white flex-shrink-0" />
+                            <input
+                              type="text"
+                              value={line.section_title || ''}
+                              onChange={(e) => updateLineText(line.id, 'section_title', e.target.value)}
+                              className="flex-1 px-3 py-2 min-h-[40px] bg-white/20 text-white placeholder-white/60 border border-white/30 rounded-lg focus:ring-2 focus:ring-white/50 focus:border-transparent text-sm font-semibold"
+                              placeholder="Titre de la section..."
+                            />
+                            <button
+                              onClick={() => removeLine(line.id)}
+                              className="p-2 min-w-[36px] min-h-[36px] flex items-center justify-center text-white/70 hover:text-white hover:bg-white/20 rounded-lg transition-colors"
+                            >
+                              <Trash2 className="w-4 h-4" />
+                            </button>
+                          </div>
+                        </div>
+                      );
+                    }
+
+                    // Regular product line
+                    return (
+                      <React.Fragment key={line.id}>
+                        <div className={`p-4 rounded-lg flex items-center gap-2 ${line.quantity === 0
+                          ? 'bg-blue-50 border-2 border-blue-200'
+                          : 'bg-white'
+                          }`}>
+                          {/* Reorder arrows */}
+                          <div className="flex flex-col gap-1 flex-shrink-0">
+                            <button
+                              onClick={() => moveLineUp(index)}
+                              disabled={index === 0}
+                              className="p-1 min-w-[32px] min-h-[32px] flex items-center justify-center rounded bg-gray-100 hover:bg-[#29235C] hover:text-white transition-colors disabled:opacity-30 disabled:hover:bg-gray-100 disabled:hover:text-gray-400 text-gray-500"
+                              title="Monter"
+                            >
+                              <ChevronUp className="w-4 h-4" />
+                            </button>
+                            <button
+                              onClick={() => moveLineDown(index)}
+                              disabled={index === devis.lignes.length - 1}
+                              className="p-1 min-w-[32px] min-h-[32px] flex items-center justify-center rounded bg-gray-100 hover:bg-[#29235C] hover:text-white transition-colors disabled:opacity-30 disabled:hover:bg-gray-100 disabled:hover:text-gray-400 text-gray-500"
+                              title="Descendre"
+                            >
+                              <ChevronDown className="w-4 h-4" />
+                            </button>
                           </div>
 
-                          <button
-                            onClick={() => removeLine(line.id)}
-                            className="p-2 min-w-[44px] min-h-[44px] flex items-center justify-center text-red-500 hover:bg-red-50 rounded-lg transition-colors"
-                          >
-                            <Trash2 className="w-5 h-5" />
-                          </button>
+                          <div className="flex-1">
+                            <div className="flex flex-col sm:flex-row sm:items-start gap-4">
+                              <div className="flex-1">
+                                <div className="flex flex-wrap items-center gap-2">
+                                  {editingLineText?.lineId === line.id && editingLineText.field === 'name' ? (
+                                    <input
+                                      type="text"
+                                      value={line.name}
+                                      onChange={(e) => updateLineText(line.id, 'name', e.target.value)}
+                                      onBlur={() => setEditingLineText(null)}
+                                      onKeyDown={(e) => { if (e.key === 'Enter') setEditingLineText(null); }}
+                                      autoFocus
+                                      className="flex-1 px-2 py-1 min-h-[36px] border border-[#29235C] rounded focus:ring-2 focus:ring-[#29235C] font-medium text-gray-900"
+                                    />
+                                  ) : (
+                                    <p
+                                      className={`font-medium cursor-pointer hover:bg-yellow-50 hover:ring-1 hover:ring-yellow-300 rounded px-1 py-0.5 transition-colors ${line.quantity === 0 ? 'text-blue-800' : 'text-gray-900'}`}
+                                      onClick={() => setEditingLineText({ lineId: line.id, field: 'name' })}
+                                      title="Cliquer pour modifier le nom"
+                                    >
+                                      {line.name}
+                                    </p>
+                                  )}
+                                  {line.quantity === 0 && (
+                                    <span className="text-xs bg-blue-200 text-blue-800 px-2 py-0.5 rounded-full">
+                                      Option à commander
+                                    </span>
+                                  )}
+                                </div>
+                                <p className="text-sm text-gray-500 mb-1">{line.reference}</p>
+                                {/* Editable description */}
+                                {editingLineText?.lineId === line.id && editingLineText.field === 'description' ? (
+                                  <textarea
+                                    value={line.description}
+                                    onChange={(e) => updateLineText(line.id, 'description', e.target.value)}
+                                    onBlur={() => setEditingLineText(null)}
+                                    autoFocus
+                                    rows={2}
+                                    className="w-full px-2 py-1 text-sm border border-[#29235C] rounded focus:ring-2 focus:ring-[#29235C] resize-none"
+                                  />
+                                ) : (
+                                  <p
+                                    className="text-sm text-gray-500 cursor-pointer hover:bg-yellow-50 hover:ring-1 hover:ring-yellow-300 rounded px-1 py-0.5 transition-colors"
+                                    onClick={() => setEditingLineText({ lineId: line.id, field: 'description' })}
+                                    title="Cliquer pour modifier la description"
+                                  >
+                                    {line.description || '(cliquer pour ajouter une description)'}
+                                  </p>
+                                )}
+                              </div>
+
+                              <div className="flex items-center gap-3">
+                                <div className="flex items-center gap-2">
+                                  <button
+                                    onClick={() => updateLineQuantity(line.id, line.quantity - 1)}
+                                    className="p-2 min-w-[44px] min-h-[44px] flex items-center justify-center rounded-lg bg-gray-200 hover:bg-gray-300 transition-colors"
+                                  >
+                                    <Minus className="w-5 h-5" />
+                                  </button>
+                                  <span className="w-12 text-center font-medium">{line.quantity}</span>
+                                  <button
+                                    onClick={() => updateLineQuantity(line.id, line.quantity + 1)}
+                                    className="p-2 min-w-[44px] min-h-[44px] flex items-center justify-center rounded-lg bg-gray-200 hover:bg-gray-300 transition-colors"
+                                  >
+                                    <Plus className="w-5 h-5" />
+                                  </button>
+                                </div>
+
+                                <div className="text-right flex-1 sm:flex-none">
+                                  {editingPrice?.lineId === line.id ? (
+                                    <input
+                                      type="number"
+                                      step="0.01"
+                                      value={editingPrice.value}
+                                      onChange={(e) => handlePriceChange(e.target.value)}
+                                      onBlur={handlePriceBlur}
+                                      onKeyDown={handlePriceKeyDown}
+                                      autoFocus
+                                      className="w-24 px-2 py-1 min-h-[44px] text-right border border-[#29235C] rounded focus:ring-2 focus:ring-[#29235C] font-semibold"
+                                    />
+                                  ) : (
+                                    <button
+                                      onClick={() => handlePriceClick(line.id, line.price_ht)}
+                                      className="text-right hover:bg-gray-100 px-2 py-2 min-h-[44px] rounded transition-colors w-full sm:w-auto"
+                                      title="Cliquer pour modifier le prix"
+                                    >
+                                      {line.quantity === 0 ? (
+                                        <>
+                                          <p className="font-semibold text-blue-700">{line.price_ht.toFixed(2)} € HT/unité</p>
+                                          <p className="text-sm text-blue-600">{(line.price_ht * (1 + devis.taux_tva / 100)).toFixed(2)} € TTC/unité</p>
+                                        </>
+                                      ) : (
+                                        <>
+                                          <p className="font-semibold text-[#29235C]">{line.total_ttc.toFixed(2)} € TTC</p>
+                                          <p className="text-sm text-gray-500">{line.price_ht.toFixed(2)} € HT/unité</p>
+                                        </>
+                                      )}
+                                    </button>
+                                  )}
+                                </div>
+
+                                <button
+                                  onClick={() => removeLine(line.id)}
+                                  className="p-2 min-w-[44px] min-h-[44px] flex items-center justify-center text-red-500 hover:bg-red-50 rounded-lg transition-colors"
+                                >
+                                  <Trash2 className="w-5 h-5" />
+                                </button>
+                              </div>
+                            </div>
+                          </div>
                         </div>
-                      </div>
-                    </div>
-                  </div>
-                ))}
+
+                        {/* Section subtotal */}
+                        {showSubtotalAfter && belongsToSectionId && sectionSubtotals[belongsToSectionId] && (
+                          <div className="flex items-center justify-end gap-3 py-2 px-4 bg-indigo-50 border border-indigo-200 rounded-lg">
+                            <span className="text-sm font-semibold text-indigo-700">
+                              Sous-total section :
+                            </span>
+                            <span className="text-sm font-bold text-indigo-900">
+                              {sectionSubtotals[belongsToSectionId].ht.toFixed(2)} € HT
+                            </span>
+                            <span className="text-sm text-indigo-600">
+                              ({sectionSubtotals[belongsToSectionId].ttc.toFixed(2)} € TTC)
+                            </span>
+                          </div>
+                        )}
+                      </React.Fragment>
+                    );
+                  });
+                })()}
               </div>
             </div>
           )}
