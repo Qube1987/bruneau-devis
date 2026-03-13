@@ -3,7 +3,7 @@ import { FileText, Download, CheckCircle, Phone, AlertCircle, Loader, X, ZoomIn,
 import { format } from 'date-fns';
 import { fr } from 'date-fns/locale';
 import { Devis, Product } from '../types';
-import { supabase, getPublicImageUrl, STORAGE_BUCKETS } from '../lib/supabase';
+import { getPublicImageUrl, STORAGE_BUCKETS } from '../lib/supabase';
 import { generatePDF } from '../lib/pdf-generator';
 import { AcceptanceDocument } from './AcceptanceDocument';
 
@@ -15,6 +15,53 @@ interface ProductModalData {
   product: Product;
   lineName: string;
 }
+
+// Helper function for anonymous REST API calls to Supabase
+// This bypasses the Supabase JS client entirely, avoiding any auth state issues
+const SUPABASE_URL = import.meta.env.VITE_SUPABASE_URL;
+const SUPABASE_ANON_KEY = import.meta.env.VITE_SUPABASE_ANON_KEY;
+
+const anonHeaders = {
+  'apikey': SUPABASE_ANON_KEY,
+  'Authorization': `Bearer ${SUPABASE_ANON_KEY}`,
+  'Content-Type': 'application/json',
+  'Accept': 'application/json',
+};
+
+const anonQuery = async (table: string, params: string = ''): Promise<any[]> => {
+  const url = `${SUPABASE_URL}/rest/v1/${table}${params ? '?' + params : ''}`;
+  const response = await fetch(url, { headers: anonHeaders });
+  if (!response.ok) {
+    throw new Error(`API error: ${response.status} ${response.statusText}`);
+  }
+  return response.json();
+};
+
+const anonInsert = async (table: string, data: any): Promise<any> => {
+  const url = `${SUPABASE_URL}/rest/v1/${table}`;
+  const response = await fetch(url, {
+    method: 'POST',
+    headers: { ...anonHeaders, 'Prefer': 'return=minimal' },
+    body: JSON.stringify(data),
+  });
+  if (!response.ok) {
+    throw new Error(`API insert error: ${response.status} ${response.statusText}`);
+  }
+  return response;
+};
+
+const anonUpdate = async (table: string, params: string, data: any): Promise<any> => {
+  const url = `${SUPABASE_URL}/rest/v1/${table}?${params}`;
+  const response = await fetch(url, {
+    method: 'PATCH',
+    headers: { ...anonHeaders, 'Prefer': 'return=minimal' },
+    body: JSON.stringify(data),
+  });
+  if (!response.ok) {
+    throw new Error(`API update error: ${response.status} ${response.statusText}`);
+  }
+  return response;
+};
 
 export const DevisViewer: React.FC<DevisViewerProps> = ({ token }) => {
   const [devis, setDevis] = useState<Devis | null>(null);
@@ -33,15 +80,9 @@ export const DevisViewer: React.FC<DevisViewerProps> = ({ token }) => {
   const [selectedPhotoIndex, setSelectedPhotoIndex] = useState<number | null>(null);
 
   useEffect(() => {
-    // Clear any stale auth session to ensure anon role is used for all queries
-    // This is critical for public devis viewing by non-connected users
-    const init = async () => {
-      await supabase.auth.signOut().catch(() => { });
-      loadDevis();
-      loadLogo();
-      loadOptionalProducts();
-    };
-    init();
+    loadDevis();
+    loadLogo();
+    loadOptionalProducts();
   }, [token]);
 
   const loadLogo = async () => {
@@ -63,32 +104,28 @@ export const DevisViewer: React.FC<DevisViewerProps> = ({ token }) => {
       if (sessionStorage.getItem(viewedKey)) return;
       sessionStorage.setItem(viewedKey, 'true');
 
-      // Save notification in database
+      // Save notification in database via REST API
       const clientName = `${devisData.client?.prenom || ''} ${devisData.client?.nom || ''}`.trim();
-      await supabase
-        .from('notifications')
-        .insert([{
-          type: 'devis_viewed',
-          devis_id: devisData.id,
-          title: `Devis consulté - ${clientName}`,
-          message: `${clientName} a ouvert le devis "${devisData.titre_affaire}"${devisData.devis_number ? ` (${devisData.devis_number})` : ''}`,
-          metadata: {
-            client: devisData.client,
-            titre_affaire: devisData.titre_affaire,
-            devis_number: devisData.devis_number,
-            viewed_at: new Date().toISOString()
-          },
-          read: false
-        }]);
+      await anonInsert('notifications', [{
+        type: 'devis_viewed',
+        devis_id: devisData.id,
+        title: `Devis consulté - ${clientName}`,
+        message: `${clientName} a ouvert le devis "${devisData.titre_affaire}"${devisData.devis_number ? ` (${devisData.devis_number})` : ''}`,
+        metadata: {
+          client: devisData.client,
+          titre_affaire: devisData.titre_affaire,
+          devis_number: devisData.devis_number,
+          viewed_at: new Date().toISOString()
+        },
+        read: false
+      }]);
 
       // Send push notification
-      const supabaseUrl = import.meta.env.VITE_SUPABASE_URL;
-      const supabaseAnonKey = import.meta.env.VITE_SUPABASE_ANON_KEY;
-      fetch(`${supabaseUrl}/functions/v1/send-devis-push`, {
+      fetch(`${SUPABASE_URL}/functions/v1/send-devis-push`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
-          'Authorization': `Bearer ${supabaseAnonKey}`,
+          'Authorization': `Bearer ${SUPABASE_ANON_KEY}`,
         },
         body: JSON.stringify({
           event: 'devis_viewed',
@@ -109,15 +146,12 @@ export const DevisViewer: React.FC<DevisViewerProps> = ({ token }) => {
       setLoading(true);
       setError(null);
 
-      const { data, error: fetchError } = await supabase
-        .from('devis')
-        .select('*')
-        .eq('access_token', token)
-        .maybeSingle();
+      // Use direct REST API calls - bypasses Supabase JS client auth state
+      const results = await anonQuery('devis', `access_token=eq.${token}&select=*`);
+      console.log('Devis fetch result:', results);
 
-      console.log('Devis fetch result:', { data, error: fetchError });
+      const data = results && results.length > 0 ? results[0] : null;
 
-      if (fetchError) throw fetchError;
       if (!data) {
         setError('Devis introuvable ou lien expiré');
         return;
@@ -130,18 +164,11 @@ export const DevisViewer: React.FC<DevisViewerProps> = ({ token }) => {
         (data.lignes || []).map(async (line: any) => {
           if (line.product_id) {
             try {
-              const { data: product } = await supabase
-                .from('products')
-                .select('*')
-                .eq('id', line.product_id)
-                .maybeSingle();
+              const products = await anonQuery('products', `id=eq.${line.product_id}&select=*`);
+              const product = products && products.length > 0 ? products[0] : null;
 
               if (product) {
-                const { data: mediaItems } = await supabase
-                  .from('product_media')
-                  .select('*')
-                  .eq('product_id', product.id)
-                  .order('display_order', { ascending: true });
+                const mediaItems = await anonQuery('product_media', `product_id=eq.${product.id}&select=*&order=display_order.asc`);
 
                 return {
                   ...line,
@@ -203,23 +230,11 @@ export const DevisViewer: React.FC<DevisViewerProps> = ({ token }) => {
 
   const loadOptionalProducts = async () => {
     try {
-      const { data, error } = await supabase
-        .from('products')
-        .select('*')
-        .eq('proposer_en_option', true)
-        .eq('is_active', true)
-        .order('category', { ascending: true })
-        .order('name', { ascending: true });
-
-      if (error) throw error;
+      const data = await anonQuery('products', 'proposer_en_option=eq.true&is_active=eq.true&select=*&order=category.asc,name.asc');
 
       const productsWithMedia = await Promise.all(
-        (data || []).map(async (product) => {
-          const { data: mediaItems } = await supabase
-            .from('product_media')
-            .select('*')
-            .eq('product_id', product.id)
-            .order('display_order', { ascending: true });
+        (data || []).map(async (product: any) => {
+          const mediaItems = await anonQuery('product_media', `product_id=eq.${product.id}&select=*&order=display_order.asc`);
 
           return {
             ...product,
@@ -289,12 +304,9 @@ export const DevisViewer: React.FC<DevisViewerProps> = ({ token }) => {
     setCustomQuantities(updatedQuantities);
 
     try {
-      const { error } = await supabase
-        .from('devis')
-        .update({ custom_quantities: Object.keys(updatedQuantities).length > 0 ? updatedQuantities : null })
-        .eq('access_token', token);
-
-      if (error) throw error;
+      await anonUpdate('devis', `access_token=eq.${token}`, {
+        custom_quantities: Object.keys(updatedQuantities).length > 0 ? updatedQuantities : null
+      });
     } catch (error) {
       console.error('Error saving custom quantities:', error);
     }
@@ -386,18 +398,13 @@ export const DevisViewer: React.FC<DevisViewerProps> = ({ token }) => {
           quantity
         }));
 
-      const { error: updateError } = await supabase
-        .from('devis')
-        .update({
-          accepted_status: 'accepted',
-          accepted_at: acceptedAt,
-          accepted_ip: 'web-client',
-          signatures: updatedSignatures,
-          selected_options: selectedOptionsArray
-        })
-        .eq('access_token', token);
-
-      if (updateError) throw updateError;
+      await anonUpdate('devis', `access_token=eq.${token}`, {
+        accepted_status: 'accepted',
+        accepted_at: acceptedAt,
+        accepted_ip: 'web-client',
+        signatures: updatedSignatures,
+        selected_options: selectedOptionsArray
+      });
 
       // Save notification in database for reliable tracking
       const totals = calculateTotalsWithOptions();
@@ -417,25 +424,20 @@ export const DevisViewer: React.FC<DevisViewerProps> = ({ token }) => {
         read: false
       };
 
-      const { error: notificationError } = await supabase
-        .from('notifications')
-        .insert([notificationData]);
-
-      if (notificationError) {
-        console.error('Error saving notification:', notificationError);
-      } else {
+      try {
+        await anonInsert('notifications', [notificationData]);
         console.log('Notification saved successfully');
+      } catch (notifErr) {
+        console.error('Error saving notification:', notifErr);
       }
 
       // Send push notification for acceptance
       try {
-        const supabaseUrlPush = import.meta.env.VITE_SUPABASE_URL;
-        const supabaseAnonKeyPush = import.meta.env.VITE_SUPABASE_ANON_KEY;
-        fetch(`${supabaseUrlPush}/functions/v1/send-devis-push`, {
+        fetch(`${SUPABASE_URL}/functions/v1/send-devis-push`, {
           method: 'POST',
           headers: {
             'Content-Type': 'application/json',
-            'Authorization': `Bearer ${supabaseAnonKeyPush}`,
+            'Authorization': `Bearer ${SUPABASE_ANON_KEY}`,
           },
           body: JSON.stringify({
             event: 'devis_accepted',
@@ -449,8 +451,6 @@ export const DevisViewer: React.FC<DevisViewerProps> = ({ token }) => {
         console.error('Error sending acceptance push:', pushErr);
       }
 
-      const supabaseUrl = import.meta.env.VITE_SUPABASE_URL;
-      const supabaseAnonKey = import.meta.env.VITE_SUPABASE_ANON_KEY;
       const companyEmail = import.meta.env.VITE_COMPANY_EMAIL || 'quentin@bruneau27.com';
 
       if (devis.client.email) {
@@ -468,11 +468,11 @@ export const DevisViewer: React.FC<DevisViewerProps> = ({ token }) => {
           const pdfBase64 = await generatePDF(devis, true, logoBase64, optionsArray, customQuantities) as string;
           console.log('PDF generated successfully');
 
-          const response = await fetch(`${supabaseUrl}/functions/v1/send-acceptance-email`, {
+          const response = await fetch(`${SUPABASE_URL}/functions/v1/send-acceptance-email`, {
             method: 'POST',
             headers: {
               'Content-Type': 'application/json',
-              'Authorization': `Bearer ${supabaseAnonKey}`,
+              'Authorization': `Bearer ${SUPABASE_ANON_KEY}`,
             },
             body: JSON.stringify({
               clientEmail: devis.client.email,
