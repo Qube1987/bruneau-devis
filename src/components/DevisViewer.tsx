@@ -270,7 +270,7 @@ export const DevisViewer: React.FC<DevisViewerProps> = ({ token }) => {
     if (!line) return;
 
     const currentQuantity = customQuantities[lineId] ?? line.quantity;
-    const newQuantity = Math.max(1, currentQuantity + delta);
+    const newQuantity = Math.max(0, currentQuantity + delta);
 
     const updatedQuantities = { ...customQuantities };
 
@@ -810,7 +810,7 @@ export const DevisViewer: React.FC<DevisViewerProps> = ({ token }) => {
                                   <div className="flex items-center gap-2">
                                     <button
                                       onClick={() => handleLineQuantityChange(line.id, -1)}
-                                      disabled={customQuantities[line.id] === 1 || (line.quantity === 1 && !customQuantities[line.id])}
+                                      disabled={(customQuantities[line.id] ?? line.quantity) === 0}
                                       className="w-8 h-8 flex items-center justify-center bg-white border-2 rounded-lg hover:bg-gray-50 transition-colors disabled:opacity-30 disabled:cursor-not-allowed"
                                     >
                                       <Minus className="w-4 h-4 text-gray-600" />
@@ -924,17 +924,22 @@ export const DevisViewer: React.FC<DevisViewerProps> = ({ token }) => {
                             ? getPublicImageUrl(STORAGE_BUCKETS.PRODUCTS, product.photo_square_path)
                             : null;
 
+                        const hasDetails = product.description_long || product.description_short;
+
                         return (
                           <div key={product.id} className="flex items-center gap-3 p-3 bg-gray-50 rounded-lg">
                             {productImageUrl && (
-                              <img
-                                src={productImageUrl}
-                                alt={product.name}
-                                className="w-16 h-16 object-cover rounded flex-shrink-0"
-                                onError={(e) => {
-                                  e.currentTarget.style.display = 'none';
-                                }}
-                              />
+                              <div className="flex flex-col items-center flex-shrink-0">
+                                <img
+                                  src={productImageUrl}
+                                  alt={product.name}
+                                  className="w-16 h-16 object-cover rounded cursor-pointer hover:shadow-md transition-shadow"
+                                  onClick={() => handleOpenProductModal(product as Product, product.name)}
+                                  onError={(e) => {
+                                    e.currentTarget.style.display = 'none';
+                                  }}
+                                />
+                              </div>
                             )}
                             <div className="flex-1 min-w-0">
                               <p className="font-medium text-gray-900 text-sm">{product.name}</p>
@@ -942,6 +947,15 @@ export const DevisViewer: React.FC<DevisViewerProps> = ({ token }) => {
                               <p className="text-sm font-semibold text-[#29235C] mt-1">
                                 {product.price_ht.toFixed(2)} € HT
                               </p>
+                              {hasDetails && (
+                                <button
+                                  onClick={() => handleOpenProductModal(product as Product, product.name)}
+                                  className="mt-1 inline-flex items-center gap-1 text-xs text-[#29235C] hover:text-[#1f1a4d] font-medium"
+                                >
+                                  <ZoomIn className="w-3 h-3" />
+                                  Voir plus de détails
+                                </button>
+                              )}
                             </div>
                             <div className="flex items-center gap-2">
                               <button

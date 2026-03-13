@@ -1133,7 +1133,7 @@ export const DevisForm: React.FC<DevisFormProps> = ({ initialDevis, onBack }) =>
                     // Regular product line
                     return (
                       <React.Fragment key={line.id}>
-                        <div className={`p-4 rounded-lg flex items-center gap-2 ${line.quantity === 0
+                        <div className={`p-2 sm:p-4 rounded-lg flex items-start sm:items-center gap-2 overflow-hidden ${line.quantity === 0
                           ? 'bg-blue-50 border-2 border-blue-200'
                           : 'bg-white'
                           }`}>
@@ -1208,24 +1208,24 @@ export const DevisForm: React.FC<DevisFormProps> = ({ initialDevis, onBack }) =>
                                 )}
                               </div>
 
-                              <div className="flex items-center gap-3">
-                                <div className="flex items-center gap-2">
+                              <div className="flex flex-wrap items-center gap-2 sm:gap-3">
+                                <div className="flex items-center gap-1 sm:gap-2">
                                   <button
                                     onClick={() => updateLineQuantity(line.id, line.quantity - 1)}
-                                    className="p-2 min-w-[44px] min-h-[44px] flex items-center justify-center rounded-lg bg-gray-200 hover:bg-gray-300 transition-colors"
+                                    className="p-1.5 sm:p-2 min-w-[36px] sm:min-w-[44px] min-h-[36px] sm:min-h-[44px] flex items-center justify-center rounded-lg bg-gray-200 hover:bg-gray-300 transition-colors"
                                   >
-                                    <Minus className="w-5 h-5" />
+                                    <Minus className="w-4 h-4 sm:w-5 sm:h-5" />
                                   </button>
-                                  <span className="w-12 text-center font-medium">{line.quantity}</span>
+                                  <span className="w-8 sm:w-12 text-center font-medium text-sm sm:text-base">{line.quantity}</span>
                                   <button
                                     onClick={() => updateLineQuantity(line.id, line.quantity + 1)}
-                                    className="p-2 min-w-[44px] min-h-[44px] flex items-center justify-center rounded-lg bg-gray-200 hover:bg-gray-300 transition-colors"
+                                    className="p-1.5 sm:p-2 min-w-[36px] sm:min-w-[44px] min-h-[36px] sm:min-h-[44px] flex items-center justify-center rounded-lg bg-gray-200 hover:bg-gray-300 transition-colors"
                                   >
-                                    <Plus className="w-5 h-5" />
+                                    <Plus className="w-4 h-4 sm:w-5 sm:h-5" />
                                   </button>
                                 </div>
 
-                                <div className="text-right flex-1 sm:flex-none">
+                                <div className="text-right flex-1 min-w-[100px]">
                                   {editingPrice?.lineId === line.id ? (
                                     <input
                                       type="number"
@@ -1235,23 +1235,23 @@ export const DevisForm: React.FC<DevisFormProps> = ({ initialDevis, onBack }) =>
                                       onBlur={handlePriceBlur}
                                       onKeyDown={handlePriceKeyDown}
                                       autoFocus
-                                      className="w-24 px-2 py-1 min-h-[44px] text-right border border-[#29235C] rounded focus:ring-2 focus:ring-[#29235C] font-semibold"
+                                      className="w-24 px-2 py-1 min-h-[36px] sm:min-h-[44px] text-right border border-[#29235C] rounded focus:ring-2 focus:ring-[#29235C] font-semibold"
                                     />
                                   ) : (
                                     <button
                                       onClick={() => handlePriceClick(line.id, line.price_ht)}
-                                      className="text-right hover:bg-gray-100 px-2 py-2 min-h-[44px] rounded transition-colors w-full sm:w-auto"
+                                      className="text-right hover:bg-gray-100 px-2 py-1 sm:py-2 min-h-[36px] sm:min-h-[44px] rounded transition-colors w-full"
                                       title="Cliquer pour modifier le prix"
                                     >
                                       {line.quantity === 0 ? (
                                         <>
-                                          <p className="font-semibold text-blue-700">{line.price_ht.toFixed(2)} € HT/unité</p>
-                                          <p className="text-sm text-blue-600">{(line.price_ht * (1 + devis.taux_tva / 100)).toFixed(2)} € TTC/unité</p>
+                                          <p className="font-semibold text-blue-700 text-sm sm:text-base">{line.price_ht.toFixed(2)} € HT/u</p>
+                                          <p className="text-xs sm:text-sm text-blue-600">{(line.price_ht * (1 + devis.taux_tva / 100)).toFixed(2)} € TTC/u</p>
                                         </>
                                       ) : (
                                         <>
-                                          <p className="font-semibold text-[#29235C]">{line.total_ttc.toFixed(2)} € TTC</p>
-                                          <p className="text-sm text-gray-500">{line.price_ht.toFixed(2)} € HT/unité</p>
+                                          <p className="font-semibold text-[#29235C] text-sm sm:text-base">{line.total_ttc.toFixed(2)} € TTC</p>
+                                          <p className="text-xs sm:text-sm text-gray-500">{line.price_ht.toFixed(2)} € HT/u</p>
                                         </>
                                       )}
                                     </button>
@@ -1260,9 +1260,9 @@ export const DevisForm: React.FC<DevisFormProps> = ({ initialDevis, onBack }) =>
 
                                 <button
                                   onClick={() => removeLine(line.id)}
-                                  className="p-2 min-w-[44px] min-h-[44px] flex items-center justify-center text-red-500 hover:bg-red-50 rounded-lg transition-colors"
+                                  className="p-1.5 sm:p-2 min-w-[36px] sm:min-w-[44px] min-h-[36px] sm:min-h-[44px] flex items-center justify-center text-red-500 hover:bg-red-50 rounded-lg transition-colors"
                                 >
-                                  <Trash2 className="w-5 h-5" />
+                                  <Trash2 className="w-4 h-4 sm:w-5 sm:h-5" />
                                 </button>
                               </div>
                             </div>
