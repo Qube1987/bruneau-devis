@@ -33,9 +33,15 @@ export const DevisViewer: React.FC<DevisViewerProps> = ({ token }) => {
   const [selectedPhotoIndex, setSelectedPhotoIndex] = useState<number | null>(null);
 
   useEffect(() => {
-    loadDevis();
-    loadLogo();
-    loadOptionalProducts();
+    // Clear any stale auth session to ensure anon role is used for all queries
+    // This is critical for public devis viewing by non-connected users
+    const init = async () => {
+      await supabase.auth.signOut().catch(() => { });
+      loadDevis();
+      loadLogo();
+      loadOptionalProducts();
+    };
+    init();
   }, [token]);
 
   const loadLogo = async () => {

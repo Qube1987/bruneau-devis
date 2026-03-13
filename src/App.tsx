@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState } from 'react';
 import { AuthForm } from './components/AuthForm';
 import { Navigation } from './components/Navigation';
 import { DevisForm } from './components/DevisForm';
@@ -14,80 +14,21 @@ import { ErrorBoundary } from './components/ErrorBoundary';
 import { useAuth } from './hooks/useAuth';
 import { Devis } from './types';
 
-function App() {
+// Detect public routes synchronously BEFORE React renders
+// This avoids calling useAuth (which touches supabase.auth) on public pages
+const path = window.location.pathname;
+const devisMatch = path.match(/^\/devis\/([a-f0-9-]+)$/);
+const paymentMatch = path.match(/^\/payment\/([a-f0-9-]+)$/);
+const paymentResultMatch = path.match(/^\/payment-result/);
+
+const isPublicRoute = !!(devisMatch || paymentMatch || paymentResultMatch);
+
+// Component for authenticated app (admin dashboard)
+function AuthenticatedApp() {
   const [currentView, setCurrentView] = useState('devis');
   const [selectedDevis, setSelectedDevis] = useState<Devis | null>(null);
-  const [publicDevisToken, setPublicDevisToken] = useState<string | null>(null);
-  const [paymentToken, setPaymentToken] = useState<string | null>(null);
-  const [isPaymentResult, setIsPaymentResult] = useState(false);
-  const [initError, setInitError] = useState<string | null>(null);
-
-  useEffect(() => {
-    try {
-      const path = window.location.pathname;
-      console.log('Current path:', path);
-
-      const devisMatch = path.match(/^\/devis\/([a-f0-9-]+)$/);
-      const paymentMatch = path.match(/^\/payment\/([a-f0-9-]+)$/);
-      const paymentResultMatch = path.match(/^\/payment-result/);
-
-      if (devisMatch) {
-        console.log('Setting public devis token:', devisMatch[1]);
-        setPublicDevisToken(devisMatch[1]);
-      } else if (paymentMatch) {
-        console.log('Setting payment token:', paymentMatch[1]);
-        setPaymentToken(paymentMatch[1]);
-      } else if (paymentResultMatch) {
-        console.log('Payment result page');
-        setIsPaymentResult(true);
-      }
-    } catch (error) {
-      console.error('Error in App initialization:', error);
-      setInitError(error instanceof Error ? error.message : 'Unknown error');
-    }
-  }, []);
 
   const { user, loading } = useAuth();
-
-  if (initError) {
-    return (
-      <div className="min-h-screen bg-gradient-to-br from-[#29235C] to-[#1a1640] flex items-center justify-center p-4">
-        <div className="bg-white rounded-lg shadow-xl p-6 max-w-md w-full text-center">
-          <div className="text-red-500 text-6xl mb-4">⚠️</div>
-          <h2 className="text-xl font-bold text-gray-900 mb-2">Erreur d'initialisation</h2>
-          <p className="text-gray-600 mb-4">{initError}</p>
-          <p className="text-sm text-gray-500">Veuillez contacter le support technique.</p>
-        </div>
-      </div>
-    );
-  }
-
-  if (publicDevisToken) {
-    console.log('Rendering DevisViewer with token:', publicDevisToken);
-    return (
-      <ErrorBoundary>
-        <DevisViewer token={publicDevisToken} />
-      </ErrorBoundary>
-    );
-  }
-
-  if (paymentToken) {
-    console.log('Rendering PaymentPage with token:', paymentToken);
-    return (
-      <ErrorBoundary>
-        <PaymentPage token={paymentToken} />
-      </ErrorBoundary>
-    );
-  }
-
-  if (isPaymentResult) {
-    console.log('Rendering PaymentResult');
-    return (
-      <ErrorBoundary>
-        <PaymentResult />
-      </ErrorBoundary>
-    );
-  }
 
   if (loading) {
     return (
@@ -109,7 +50,7 @@ function App() {
       case 'devis':
         if (selectedDevis) {
           return (
-            <DevisForm 
+            <DevisForm
               initialDevis={selectedDevis}
               onBack={() => {
                 setSelectedDevis(null);
@@ -121,7 +62,7 @@ function App() {
         return <DevisForm />;
       case 'list':
         return (
-          <DevisList 
+          <DevisList
             onLoadDevis={(devis) => {
               setSelectedDevis(devis);
               setCurrentView('devis');
@@ -161,6 +102,42 @@ function App() {
       </main>
     </div>
   );
+}
+
+// Main App component - routes between public and authenticated views
+function App() {
+  // Public routes: render directly WITHOUT useAuth (no auth interference)
+  if (devisMatch) {
+    const token = devisMatch[1];
+    console.log('Rendering DevisViewer with token:', token);
+    return (
+      <ErrorBoundary>
+        <DevisViewer token={token} />
+      </ErrorBoundary>
+    );
+  }
+
+  if (paymentMatch) {
+    const token = paymentMatch[1];
+    console.log('Rendering PaymentPage with token:', token);
+    return (
+      <ErrorBoundary>
+        <PaymentPage token={token} />
+      </ErrorBoundary>
+    );
+  }
+
+  if (paymentResultMatch) {
+    console.log('Rendering PaymentResult');
+    return (
+      <ErrorBoundary>
+        <PaymentResult />
+      </ErrorBoundary>
+    );
+  }
+
+  // Authenticated app (admin dashboard)
+  return <AuthenticatedApp />;
 }
 
 export default App;
