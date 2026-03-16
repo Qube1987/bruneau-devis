@@ -1,7 +1,8 @@
 import { useState, useEffect, useCallback } from 'react';
 import { supabase } from '../lib/supabase';
 
-const VAPID_PUBLIC_KEY = import.meta.env.VITE_VAPID_PUBLIC_KEY;
+// Clé VAPID publique en dur — DOIT correspondre à la clé privée configurée sur Supabase Edge Functions
+const VAPID_PUBLIC_KEY = 'BH2A-EIhJE7x_DcWaYZoIc_HemxXXnPSc1r0wFjNwvkjUFpzT5IXrPHvT_ck2zkoIi8YwrUdIYRJ0rjmwUg-8ws';
 
 function urlBase64ToUint8Array(base64String: string): Uint8Array {
     const padding = '='.repeat((4 - (base64String.length % 4)) % 4);
@@ -46,8 +47,8 @@ export const usePushNotifications = () => {
     };
 
     const subscribe = useCallback(async () => {
-        if (!isSupported || !VAPID_PUBLIC_KEY) {
-            setError('Notifications push non supportées ou clé VAPID manquante');
+        if (!isSupported) {
+            setError('Notifications push non supportées');
             return false;
         }
 
@@ -55,7 +56,7 @@ export const usePushNotifications = () => {
             setLoading(true);
             setError(null);
 
-            // Request permission
+            // 1. Demander la permission AVANT toute autre chose
             const permission = await Notification.requestPermission();
             setPermissionState(permission);
 
@@ -64,10 +65,28 @@ export const usePushNotifications = () => {
                 return false;
             }
 
-            // Register service worker if not already
             const registration = await navigator.serviceWorker.ready;
 
-            // Subscribe to push
+            // 2. Supprimer l'ancienne subscription (dans le navigateur ET Supabase)
+            //    pour éviter les problèmes de VAPID mismatch
+            const existingSubscription = await registration.pushManager.getSubscription();
+            if (existingSubscription) {
+                console.log('[Push] Removing old subscription to avoid VAPID mismatch...');
+                // Supprimer de Supabase
+                try {
+                    await supabase
+                        .from('devis_push_subscriptions')
+                        .delete()
+                        .eq('endpoint', existingSubscription.endpoint);
+                } catch (dbErr) {
+                    console.warn('[Push] Could not remove old subscription from DB:', dbErr);
+                }
+                // Supprimer du navigateur
+                await existingSubscription.unsubscribe();
+                console.log('[Push] Old subscription removed');
+            }
+
+            // 3. Créer une nouvelle subscription avec la bonne clé VAPID
             const subscription = await registration.pushManager.subscribe({
                 userVisibleOnly: true,
                 applicationServerKey: urlBase64ToUint8Array(VAPID_PUBLIC_KEY),
@@ -75,14 +94,14 @@ export const usePushNotifications = () => {
 
             const subscriptionJSON = subscription.toJSON();
 
-            // Get current user
+            // 4. Récupérer l'utilisateur connecté
             const { data: { user } } = await supabase.auth.getUser();
             if (!user) {
                 setError('Utilisateur non connecté');
                 return false;
             }
 
-            // Save to Supabase
+            // 5. Sauvegarder dans la table devis_push_subscriptions
             const { error: upsertError } = await supabase
                 .from('devis_push_subscriptions')
                 .upsert(
@@ -107,7 +126,7 @@ export const usePushNotifications = () => {
             }
 
             setIsSubscribed(true);
-            console.log('[Push] Successfully subscribed');
+            console.log('[Push] Successfully subscribed with correct VAPID key');
             return true;
         } catch (err) {
             console.error('[Push] Error subscribing:', err);
@@ -133,7 +152,7 @@ export const usePushNotifications = () => {
                     .delete()
                     .eq('endpoint', subscription.endpoint);
 
-                // Unsubscribe
+                // Unsubscribe from browser
                 await subscription.unsubscribe();
             }
 

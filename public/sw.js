@@ -1,13 +1,13 @@
 // Service Worker for Bruneau Devis PWA
-const CACHE_NAME = 'bruneau-devis-v1';
+const CACHE_NAME = 'bruneau-devis-v2';
 
-// Install event - cache essential assets
+// Installation immédiate
 self.addEventListener('install', (event) => {
     console.log('[SW] Installing service worker...');
     self.skipWaiting();
 });
 
-// Activate event - clean old caches
+// Prise de contrôle immédiate
 self.addEventListener('activate', (event) => {
     console.log('[SW] Activating service worker...');
     event.waitUntil(
@@ -17,9 +17,8 @@ self.addEventListener('activate', (event) => {
                     .filter((name) => name !== CACHE_NAME)
                     .map((name) => caches.delete(name))
             );
-        })
+        }).then(() => self.clients.claim())
     );
-    self.clients.claim();
 });
 
 // Fetch event - network first, fallback to cache
@@ -57,58 +56,57 @@ self.addEventListener('fetch', (event) => {
     );
 });
 
-// Push notification event
+// Réception des push notifications
 self.addEventListener('push', (event) => {
     console.log('[SW] Push event received');
 
-    let data = {};
+    let data = { title: 'Bruneau Devis', body: '', icon: '/devis-android-chrome-512x512.png', tag: 'devis-notification' };
     try {
-        data = event.data ? event.data.json() : {};
+        if (event.data) {
+            const json = event.data.json();
+            data = { ...data, ...json };
+        }
     } catch (e) {
         console.error('[SW] Error parsing push data:', e);
-        data = { title: 'Bruneau Devis', body: event.data ? event.data.text() : 'Nouvelle notification' };
+        data.body = event.data?.text() || 'Nouvelle notification';
     }
 
-    const title = data.title || 'Bruneau Devis';
-    const options = {
-        body: data.body || 'Vous avez une nouvelle notification',
-        icon: '/devis-android-chrome-512x512.png',
-        badge: '/devis-android-chrome-512x512.png',
-        vibrate: [200, 100, 200],
-        tag: data.tag || 'devis-notification',
-        renotify: true,
-        data: {
-            url: data.url || '/',
-            type: data.type || 'general'
-        }
-    };
-
     event.waitUntil(
-        self.registration.showNotification(title, options)
+        self.registration.showNotification(data.title, {
+            body: data.body || 'Vous avez une nouvelle notification',
+            icon: data.icon || '/devis-android-chrome-512x512.png',
+            badge: '/devis-android-chrome-512x512.png',
+            tag: data.tag || 'devis-notification',
+            requireInteraction: true,  // IMPORTANT : reste affiché jusqu'au clic
+            renotify: true,
+            vibrate: [200, 100, 200],
+            data: {
+                url: data.url || '/',
+                type: data.type || 'general'
+            }
+        })
     );
 });
 
-// Notification click event
+// Clic sur notification
 self.addEventListener('notificationclick', (event) => {
     console.log('[SW] Notification clicked');
     event.notification.close();
 
-    const urlToOpen = event.notification.data?.url || '/';
+    const url = event.notification.data?.url || '/';
 
     event.waitUntil(
-        self.clients.matchAll({ type: 'window', includeUncontrolled: true }).then((clientList) => {
+        self.clients.matchAll({ type: 'window', includeUncontrolled: true }).then((clients) => {
             // Try to focus an existing window
-            for (const client of clientList) {
-                if (client.url.includes(self.location.origin) && 'focus' in client) {
+            for (const client of clients) {
+                if (client.url.includes(self.location.origin)) {
                     client.focus();
-                    if (urlToOpen !== '/') {
-                        client.navigate(urlToOpen);
-                    }
+                    client.navigate(url);
                     return;
                 }
             }
             // Open a new window
-            return self.clients.openWindow(urlToOpen);
+            return self.clients.openWindow(url);
         })
     );
 });
