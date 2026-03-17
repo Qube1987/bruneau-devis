@@ -6,6 +6,7 @@ import { DevisList } from './components/DevisList';
 import { ProductManagement } from './components/ProductManagement';
 import { MediaLibrary } from './components/MediaLibrary';
 import { ClientManagement } from './components/ClientManagement';
+import { ExtrabatReconciliation } from './components/ExtrabatReconciliation';
 import { DevisViewer } from './components/DevisViewer';
 import PaymentPage from './components/PaymentPage';
 import PaymentResult from './components/PaymentResult';
@@ -84,6 +85,10 @@ function AuthenticatedApp() {
       case 'clients':
         return (
           <ClientManagement />
+        );
+      case 'extrabat':
+        return (
+          <ExtrabatReconciliation />
         );
       case 'notifications':
         return (

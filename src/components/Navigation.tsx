@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useRef } from 'react';
-import { FileText, LogOut, Users, Package, Image, Bell, Menu, X, User, ChevronDown } from 'lucide-react';
+import { FileText, LogOut, Users, Package, Image, Bell, Menu, X, User, ChevronDown, Link2 } from 'lucide-react';
 import { useAuth } from '../hooks/useAuth';
 import { supabase } from '../lib/supabase';
 import { PushSettings } from './PushSettings';
@@ -76,6 +76,7 @@ export const Navigation: React.FC<NavigationProps> = ({ currentView, onViewChang
     { id: 'products', label: 'Produits', icon: Package, allowExternal: false },
     { id: 'media', label: 'Bibliothèque', icon: Image, allowExternal: false },
     { id: 'clients', label: 'Clients', icon: Users, allowExternal: false },
+    { id: 'extrabat', label: 'Extrabat', icon: Link2, allowExternal: false },
   ];
 
   // Filtrer les onglets selon le type d'utilisateur
