@@ -74,8 +74,9 @@ export const ExtrabatReconciliation: React.FC = () => {
                 body: {
                     endpoint: 'articles',
                     params: {
-                        q: query,
-                        nbitem: 20,
+                        'filter': `label~/${query}/`,
+                        'nbitem': 50,
+                        'page': 1,
                     }
                 }
             });
