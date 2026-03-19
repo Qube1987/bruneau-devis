@@ -7,9 +7,10 @@ import { PushSettings } from './PushSettings';
 interface NavigationProps {
   currentView: string;
   onViewChange: (view: string) => void;
+  onHomeClick: () => void;
 }
 
-export const Navigation: React.FC<NavigationProps> = ({ currentView, onViewChange }) => {
+export const Navigation: React.FC<NavigationProps> = ({ currentView, onViewChange, onHomeClick }) => {
   const { signOut, userType, user } = useAuth();
   const [unreadCount, setUnreadCount] = useState(0);
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
@@ -89,7 +90,11 @@ export const Navigation: React.FC<NavigationProps> = ({ currentView, onViewChang
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
         <div className="flex items-center justify-between h-16">
           <div className="flex items-center gap-4 flex-1">
-            <div className="flex items-center gap-2 flex-shrink-0">
+            <button
+              onClick={onHomeClick}
+              className="flex items-center gap-2 flex-shrink-0 cursor-pointer hover:opacity-80 transition-opacity"
+              title="Retour à l'accueil"
+            >
               <img
                 src="/bruneau_protection_logo_quadri.png"
                 alt="Bruneau Protection"
@@ -98,7 +103,7 @@ export const Navigation: React.FC<NavigationProps> = ({ currentView, onViewChang
               <span className="text-xl font-bold text-[#29235C] hidden sm:block">
                 DEV
               </span>
-            </div>
+            </button>
 
             <div className="hidden md:flex items-center gap-1">
               {navItems.map((item) => {

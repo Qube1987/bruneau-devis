@@ -28,8 +28,16 @@ const isPublicRoute = !!(devisMatch || paymentMatch || paymentResultMatch);
 function AuthenticatedApp() {
   const [currentView, setCurrentView] = useState('devis');
   const [selectedDevis, setSelectedDevis] = useState<Devis | null>(null);
+  const [devisFormKey, setDevisFormKey] = useState(0);
 
   const { user, loading } = useAuth();
+
+  const handleHomeClick = () => {
+    setSelectedDevis(null);
+    setCurrentView('devis');
+    // Increment key to force DevisForm to remount and reset its internal state
+    setDevisFormKey(prev => prev + 1);
+  };
 
   if (loading) {
     return (
@@ -52,6 +60,7 @@ function AuthenticatedApp() {
         if (selectedDevis) {
           return (
             <DevisForm
+              key={devisFormKey}
               initialDevis={selectedDevis}
               onBack={() => {
                 setSelectedDevis(null);
@@ -60,7 +69,7 @@ function AuthenticatedApp() {
             />
           );
         }
-        return <DevisForm />;
+        return <DevisForm key={devisFormKey} />;
       case 'list':
         return (
           <DevisList
@@ -95,13 +104,13 @@ function AuthenticatedApp() {
           <NotificationsPanel />
         );
       default:
-        return <DevisForm />;
+        return <DevisForm key={devisFormKey} />;
     }
   };
 
   return (
     <div className="min-h-screen bg-gray-100">
-      <Navigation currentView={currentView} onViewChange={setCurrentView} />
+      <Navigation currentView={currentView} onViewChange={setCurrentView} onHomeClick={handleHomeClick} />
       <main className="py-6">
         {renderCurrentView()}
       </main>
